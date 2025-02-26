@@ -173,7 +173,7 @@ def main(page: ft.Page):
                         width=340,
                         content=ft.Column(
                             [
-                                # Second Generate OTP button added here
+                                # Second Generate OTP button added 
                                 ft.ElevatedButton(
                                     "Generate OTP",
                                     bgcolor="black",

@@ -1,7 +1,21 @@
 from .connection import create_connection, close_connection
 import sqlite3
 
+
+def user_exists(email):
+    conn = sqlite3.connect("plateful.db")
+    cursor = conn.cursor()
+
+    cursor.execute('SELECT * FROM "USER" WHERE email = ?', (email,))
+    user = cursor.fetchone()
+
+    conn.close()
+    return user is not None
+
 def register_user(name, contact, email, user_type, password):
+    if user_exists(email):
+        return False
+
     try:
         conn = sqlite3.connect('plateful.db')
         cursor = conn.cursor()

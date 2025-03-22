@@ -114,5 +114,3 @@ def home_page(page: ft.Page):
 
     # Add bottom nav separately so it doesn't scroll away
     page.add(bottom_nav)
-
-ft.app(target=home_page)

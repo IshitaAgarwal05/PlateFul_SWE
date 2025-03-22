@@ -29,19 +29,40 @@ def register_user(name, contact, email, user_type, password):
 
         # Map user to corresponding table based on user_type
         if user_type == "FS Employee":
-            cursor.execute('INSERT INTO FOOD_SUPPLIER (user_id) VALUES (?)', (user_id,))
+            cursor.execute('''
+                    INSERT INTO FOOD_SUPPLIER (user_id, name, contact, email)
+                    VALUES (?, ?, ?, ?)
+                    ''', (user_id, name, contact, email))
         elif user_type == "NGO Employee":
-            cursor.execute('INSERT INTO NGO (user_id) VALUES (?)', (user_id,))
+            cursor.execute('''
+                    INSERT INTO NGO (user_id, name, contact, email)
+                    VALUES (?, ?, ?, ?)
+                    ''', (user_id, name, contact, email))
         elif user_type == "BPLU":
-            cursor.execute('INSERT INTO BPL_VERIFICATION (user_id) VALUES (?)', (user_id,))
+            cursor.execute('''
+                    INSERT INTO BPL_VERIFICATION (user_id, name, contact, email)
+                    VALUES (?, ?, ?, ?)
+                    ''', (user_id, name, contact, email))
         elif user_type == "StudentU":
-            cursor.execute('INSERT INTO STUDENT_VERIFICATION (user_id) VALUES (?)', (user_id,))
+            cursor.execute('''
+                    INSERT INTO STUDENT_VERIFICATION (user_id, name, contact, email)
+                    VALUES (?, ?, ?, ?)
+                    ''', (user_id, name, contact, email))
+        elif user_type == "Admin":
+            cursor.execute('''
+                    INSERT INTO ADMIN (admin_id, name, contact, email, password)
+                    VALUES (?, ?, ?, ?, ?)
+                    ''', (user_id, name, contact, email, password))
 
         conn.commit()
         conn.close()
+        print(f"User registered successfully and mapped to {user_type} table!")
         return True
+
     except Exception as e:
         print(f"Error registering user: {e}")
+        conn.rollback()  # Rollback the transaction in case of an error
+        conn.close()
         return False
 
 

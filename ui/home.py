@@ -102,7 +102,6 @@ def home_page(page: ft.Page):
                 search_bar,
                 filter_row,
                 promotions,
-                ft.Text("Eat what makes you happy", size=16, weight="bold", color="black"),
                 food_categories,
                 ft.Text("Nearby Restaurants", size=16, weight="bold", color="black"),
                 restaurant_list

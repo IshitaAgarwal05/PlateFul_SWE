@@ -23,6 +23,20 @@ def register_user(name, contact, email, user_type, password):
         INSERT INTO USER (user_type, name, contact, email, password)
         VALUES (?, ?, ?, ?, ?)
         ''', (user_type, name, contact, email, password))
+
+        # Get the newly inserted user's ID
+        user_id = cursor.lastrowid
+
+        # Map user to corresponding table based on user_type
+        if user_type == "FS Employee":
+            cursor.execute('INSERT INTO FOOD_SUPPLIER (user_id) VALUES (?)', (user_id,))
+        elif user_type == "NGO Employee":
+            cursor.execute('INSERT INTO NGO (user_id) VALUES (?)', (user_id,))
+        elif user_type == "BPLU":
+            cursor.execute('INSERT INTO BPL_VERIFICATION (user_id) VALUES (?)', (user_id,))
+        elif user_type == "StudentU":
+            cursor.execute('INSERT INTO STUDENT_VERIFICATION (user_id) VALUES (?)', (user_id,))
+
         conn.commit()
         conn.close()
         return True

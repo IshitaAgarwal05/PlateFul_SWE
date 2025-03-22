@@ -1,7 +1,7 @@
 import flet as ft
 
 def home_page(page: ft.Page):
-    page.title = "Food Ordering App"
+    page.title = "PlateFul"
     page.bgcolor = "#ffffff"
 
     # Search Bar

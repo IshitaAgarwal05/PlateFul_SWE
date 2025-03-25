@@ -1,8 +1,9 @@
 import flet as ft
 from db.connection import initialize_database
 from ui.login_pages import login_page, registration_page, registration_success_page
-from ui.home import home_page
 from ui.onboarding_pages import show_loading
+from ui.user.current_order import curr_order
+
 
 def main(page: ft.Page):
     page.title = "Plateful App"
@@ -38,8 +39,21 @@ def main(page: ft.Page):
             page.add(registration_page(page, navigate_to))
         elif view == "registration-success":
             page.add(registration_success_page(page, navigate_to))
-        elif view == "home":
-            page.add(home_page(page))
+        elif view == "menu":
+            page.add(curr_order(page))
+        elif view == "admin_home":
+            from ui.user.home import home_page as admin_home
+            page.add(admin_home(page, navigate_to))
+        elif view == "fs_home":
+            from ui.fs.fs_desc import desc as fs_home
+            page.add(fs_home(page))
+        elif view == "ngo_home":
+            from ui.user.home import home_page as ngo_home
+            page.add(ngo_home(page, navigate_to))
+        elif view == "user_home":
+            from ui.user.home import home_page as user_home
+            page.add(user_home(page, navigate_to))
+
         page.update()
 
     # Start with the login view

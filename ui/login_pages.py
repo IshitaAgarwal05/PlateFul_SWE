@@ -22,7 +22,7 @@ def login_page(page: ft.Page, navigate_to):
                     "PLATEFUL",
                     size=28,
                     weight=ft.FontWeight.BOLD,
-                    color="white",
+                    color="black",
                     text_align=ft.TextAlign.CENTER,
                 ),
             ],
@@ -67,7 +67,7 @@ def login_page(page: ft.Page, navigate_to):
         if not login_user(email, password):
             # Show "Invalid credentials" message
             page.snack_bar = ft.SnackBar(
-                content=ft.Text("Invalid credentials. Try again.", color="white"),
+                content=ft.Text("Invalid credentials. Try again.", color="black"),
                 bgcolor="red",
                 action="OK",
                 duration=5000  # 5 seconds
@@ -81,16 +81,16 @@ def login_page(page: ft.Page, navigate_to):
 
         # Redirect to the appropriate home page
         if user_role == "admin":
-            navigate_to(page, "admin_home")
+            navigate_to(page, "admin_home", email)
         elif user_role == "food_supplier":
-            navigate_to(page, "fs_home")
+            navigate_to(page, "fs_home", email)
         elif user_role == "ngo":
-            navigate_to(page, "ngo_home")
+            navigate_to(page, "ngo_home", email)
         elif user_role in ["student_verification", "bpl_verification"]:
-            navigate_to(page, "user_home")
+            navigate_to(page, "user_home", email)
         else:
             page.snack_bar = ft.SnackBar(
-                content=ft.Text("User role not recognized.", color="white"),
+                content=ft.Text("User role not recognized.", color="black"),
                 bgcolor="red",
                 action="OK",
                 duration=5000
@@ -117,10 +117,10 @@ def login_page(page: ft.Page, navigate_to):
         border_radius=ft.border_radius.only(top_left=30, top_right=30),
         content=ft.Column(
             [
-                ft.Text("Welcome to Plateful", size=24, weight=ft.FontWeight.BOLD, color="white"),
+                ft.Text("Welcome to Plateful", size=24, weight=ft.FontWeight.BOLD, color="black"),
 
                 # Login Form
-                ft.Text("Sign In", size=20, weight=ft.FontWeight.BOLD, color="white"),
+                ft.Text("Sign In", size=20, weight=ft.FontWeight.BOLD, color="black"),
                 email_field,
                 password_field,
 
@@ -133,27 +133,27 @@ def login_page(page: ft.Page, navigate_to):
                 # OR Divider
                 ft.Row(
                     [
-                        ft.Container(width=100, content=ft.Divider(color="white")),
-                        ft.Text("OR", color="white"),
-                        ft.Container(width=100, content=ft.Divider(color="white")),
+                        ft.Container(width=100, content=ft.Divider(color="black")),
+                        ft.Text("OR", color="black"),
+                        ft.Container(width=100, content=ft.Divider(color="black")),
                     ],
                     alignment=ft.MainAxisAlignment.CENTER
                 ),
 
                 # Register Section
-                ft.Text("Don't have an account?", size=14, color="white"),
+                ft.Text("Don't have an account?", size=14, color="black"),
                 ft.OutlinedButton(
                     "Register",
                     icon=ft.icons.PERSON_ADD,
                     style=ft.ButtonStyle(
-                        color="white",
-                        side=ft.BorderSide(1, "white")
+                        color="black",
+                        side=ft.BorderSide(1, "black")
                     ),
                     on_click=lambda _: navigate_to(page, "register")
                 ),
 
                 # Social Media Buttons
-                ft.Text("Sign In with", size=14, weight=ft.FontWeight.BOLD, color="white"),
+                ft.Text("Sign In with", size=14, weight=ft.FontWeight.BOLD, color="black"),
                 ft.ElevatedButton(
                     text="Gmail",
                     icon=ft.icons.EMAIL,
@@ -185,7 +185,7 @@ def login_page(page: ft.Page, navigate_to):
                 ft.Text(
                     "By continuing, you agree to our Terms of Service, Privacy Policy, and Content Policy.",
                     size=10,
-                    color="white",
+                    color="black",
                     text_align=ft.TextAlign.CENTER,
                 ),
             ],
@@ -221,7 +221,7 @@ def registration_page(page, navigate_to):
         # Check if the user already exists
         if user_exists(email_field.value):
             page.snack_bar = ft.SnackBar(
-                content=ft.Text("User already exists! Try a different username or email.", color="white"),
+                content=ft.Text("User already exists! Try a different username or email.", color="black"),
                 bgcolor="red",
                 action="OK",
                 duration=5000  # 5 seconds
@@ -246,7 +246,7 @@ def registration_page(page, navigate_to):
 
         else:
             page.snack_bar = ft.SnackBar(
-                content=ft.Text("Registration failed. Try again!", color="white"),
+                content=ft.Text("Registration failed. Try again!", color="black"),
                 bgcolor="red",
                 action="OK",
                 duration=3000  # 3 seconds

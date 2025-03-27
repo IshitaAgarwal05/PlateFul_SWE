@@ -1,58 +1,44 @@
 # import sqlite3
 #
-#
 # def setup_database():
 #     conn = sqlite3.connect("plateful.db")
 #     cursor = conn.cursor()
 #
-#     # Create FOOD_SUPPLIER table (without menu column)
-#     cursor.execute("""
-#         CREATE TABLE IF NOT EXISTS FOOD_SUPPLIER (
-#             restaurant_id INTEGER PRIMARY KEY,
-#             name TEXT NOT NULL,
-#             location TEXT NOT NULL,
-#             contact TEXT NOT NULL,
-#             is_active BOOLEAN DEFAULT 1,
-#             rating INTEGER,
-#             email TEXT UNIQUE,
-#             description TEXT
-#         );
-#     """)
+#     # Fetch existing suppliers
+#     cursor.execute("SELECT restaurant_id FROM FOOD_SUPPLIER")
+#     suppliers = cursor.fetchall()  # List of (restaurant_id,)
+#     print("Existing Suppliers:", suppliers)
 #
-#     # Create FOOD_ITEM table
-#     cursor.execute("""
-#         CREATE TABLE IF NOT EXISTS FOOD_ITEM (
-#             item_id INTEGER PRIMARY KEY,
-#             restaurant_id INTEGER,
-#             name TEXT NOT NULL,
-#             price REAL NOT NULL,
-#             description TEXT,
-#             available BOOLEAN DEFAULT 1,
-#             FOREIGN KEY (restaurant_id) REFERENCES FOOD_SUPPLIER(restaurant_id) ON DELETE CASCADE
-#         );
-#     """)
-#
-#     # Insert sample data if not already present
-#     cursor.execute("SELECT COUNT(*) FROM FOOD_SUPPLIER")
-#     if cursor.fetchone()[0] == 0:
-#         cursor.execute(
-#             "INSERT INTO FOOD_SUPPLIER (name, location, contact, rating, email, description) VALUES ('Spicy Delight', 'New York', '1234567890', 5, 'spicy@food.com', 'Authentic spicy dishes')")
-#         cursor.execute(
-#             "INSERT INTO FOOD_SUPPLIER (name, location, contact, rating, email, description) VALUES ('Sweet Treats', 'Los Angeles', '0987654321', 4, 'sweet@food.com', 'Delicious desserts')")
-#
+#     # Check if food items already exist
 #     cursor.execute("SELECT COUNT(*) FROM FOOD_ITEM")
-#     if cursor.fetchone()[0] == 0:
-#         cursor.execute(
-#             "INSERT INTO FOOD_ITEM (restaurant_id, name, price, description, available) VALUES (1, 'Spicy Burger', 9.99, 'A fiery burger with jalapenos', 1)")
-#         cursor.execute(
-#             "INSERT INTO FOOD_ITEM (restaurant_id, name, price, description, available) VALUES (1, 'Hot Wings', 12.99, 'Crispy chicken wings with hot sauce', 1)")
-#         cursor.execute(
-#             "INSERT INTO FOOD_ITEM (restaurant_id, name, price, description, available) VALUES (2, 'Chocolate Cake', 5.99, 'Rich chocolate cake with frosting', 1)")
+#
+#     food_items = [
+#         (1, "Masala Dosa", 120.0, "Crispy dosa with spiced potato filling", 1),
+#         (1, "Idli Sambar", 80.0, "Soft idlis served with sambar and chutney", 1),
+#         (2, "Paneer Butter Masala", 200.0, "Rich and creamy paneer curry", 1),
+#         (2, "Tandoori Roti", 40.0, "Clay oven-baked roti", 1),
+#         (3, "Biryani", 250.0, "Fragrant basmati rice with spices", 1),
+#         (3, "Butter Chicken", 280.0, "Creamy tomato-based chicken curry", 1),
+#         (4, "Pasta Alfredo", 180.0, "Creamy Italian pasta with cheese", 1),
+#         (4, "Garlic Bread", 90.0, "Toasted bread with garlic butter", 1),
+#         (5, "Chocolate Brownie", 150.0, "Rich and fudgy chocolate brownie", 1),
+#         (5, "Fruit Salad", 130.0, "Fresh seasonal fruits with honey drizzle", 1),
+#         (5, "Cold Coffee", 110.0, "Chilled coffee with ice cream", 1),
+#         (5, "Mojito", 90.0, "Refreshing mint and lemon drink", 1),
+#     ]
+#
+#     # Insert food items only for existing suppliers
+#     for item in food_items:
+#         restaurant_id = item[0]
+#         if any(supplier[0] == restaurant_id for supplier in suppliers):
+#             cursor.execute("""
+#                 INSERT INTO FOOD_ITEM (restaurant_id, name, price, description, available)
+#                 VALUES (?, ?, ?, ?, ?)
+#             """, item)
 #
 #     conn.commit()
 #     conn.close()
-#     print("✅ Database setup complete!")
-#
+#     print("✅ Database setup complete! Existing suppliers retained, and new dishes added.")
 #
 # setup_database()
 
@@ -105,7 +91,7 @@ def get_supplier_menu(email):
 
 
 # Test the function
-email = "00001"
+email = "00005"
 supplier_menu = get_supplier_menu(email)
 
 if supplier_menu:

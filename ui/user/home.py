@@ -1,7 +1,7 @@
 import flet as ft
 from db.models import get_food_suppliers
 
-def home_page(page: ft.Page, navigate_to):
+def home_page(page: ft.Page, navigate_to, email):
     page.title = "PlateFul"
     page.bgcolor = "#ffffff"
 
@@ -66,7 +66,7 @@ def home_page(page: ft.Page, navigate_to):
     restaurant_list = ft.Column(
         controls=[
             ft.GestureDetector(
-                on_tap=lambda e: navigate_to(page, "menu"),  # Capture item correctly
+                on_tap=lambda e: navigate_to(page, "menu", email),  # Capture item correctly
                 content=ft.Card(
                     content=ft.Row(
                         controls=[

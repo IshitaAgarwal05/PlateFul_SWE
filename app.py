@@ -29,32 +29,56 @@ def main(page: ft.Page):
 
     # print("A")
     # Function to navigate to different views
-    def navigate_to(page, view):
-        page.clean()
-        if view == "welcome":
-            page.add(show_loading(page, navigate_to))  # Add the returned content
-        elif view == "login":
-            page.add(login_page(page, navigate_to))
-        elif view == "register":
-            page.add(registration_page(page, navigate_to))
-        elif view == "registration-success":
-            page.add(registration_success_page(page, navigate_to))
-        elif view == "menu":
-            page.add(curr_order(page))
-        elif view == "admin_home":
-            from ui.user.home import home_page as admin_home
-            page.add(admin_home(page, navigate_to))
-        elif view == "fs_home":
-            from ui.fs.fs_desc import desc as fs_home
-            page.add(fs_home(page))
-        elif view == "ngo_home":
-            from ui.user.home import home_page as ngo_home
-            page.add(ngo_home(page, navigate_to))
-        elif view == "user_home":
-            from ui.user.home import home_page as user_home
-            page.add(user_home(page, navigate_to))
+    def navigate_to(page, view, email=None):
+        try:
+            page.clean()
+            if view == "welcome":
+                page.add(show_loading(page, navigate_to))  # Add the returned content
+            elif view == "login":
+                page.add(login_page(page, navigate_to))
+            elif view == "register":
+                page.add(registration_page(page, navigate_to))
+            elif view == "registration-success":
+                page.add(registration_success_page(page, navigate_to))
 
-        page.update()
+            elif view == "menu":
+                page.add(curr_order(page, email))  # Pass email to curr_order
+            elif view == "admin_home":
+                from ui.user.home import home_page as admin_home
+                page.add(admin_home(page, navigate_to, email))  # Pass email
+
+
+            elif view == "fs_home":
+                from ui.fs.fs_desc import desc
+                desc(page, navigate_to, email)
+            elif view == "supplier_insights":
+                from ui.fs.fs_insights import supplier_insights
+                insights_component = supplier_insights(page, email)
+                if not isinstance(insights_component, ft.Control):
+                    raise ValueError("Invalid component returned")
+                page.add(insights_component)
+
+
+            elif view == "ngo_home":
+                from ui.user.home import home_page as ngo_home
+                page.add(ngo_home(page, navigate_to, email))  # Pass email
+
+
+            elif view == "user_home":
+                from ui.user.home import home_page as user_home
+                page.add(user_home(page, navigate_to, email))  # Pass email
+
+
+            else:
+                ft.Text("🚧 Page not found")  # Prevent `None` issues
+
+            page.update()
+
+        except Exception as e:
+            print(f"Navigation error: {e}")
+            page.clean()
+            page.add(ft.Text(f"Navigation error: {str(e)}", color="red", size=16))
+            page.update()
 
     # Start with the login view
     navigate_to(page, "login")

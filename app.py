@@ -41,6 +41,7 @@ def main(page: ft.Page):
             elif view == "registration-success":
                 page.add(registration_success_page(page, navigate_to))
 
+
             elif view == "menu":
                 page.add(curr_order(page, email))  # Pass email to curr_order
             elif view == "admin_home":
@@ -48,7 +49,7 @@ def main(page: ft.Page):
                 page.add(admin_home(page, navigate_to, email))  # Pass email
 
 
-            elif view == "fs_home":
+            elif view == "fs_desc":
                 from ui.fs.fs_desc import desc
                 desc(page, navigate_to, email)
             elif view == "supplier_insights":
@@ -62,11 +63,25 @@ def main(page: ft.Page):
             elif view == "ngo_home":
                 from ui.user.home import home_page as ngo_home
                 page.add(ngo_home(page, navigate_to, email))  # Pass email
+            elif view == "ngo_desc":
+                from ui.ngo.ngo_desc import desc as ngo_desc
+                page.add(ngo_desc(page, navigate_to, email))
+            elif view == "ngo_donation":
+                from ui.ngo.ngo_donation import donation_page
+                page.add(donation_page(page, navigate_to, email))
+            elif view == "ngo_donations_view":
+                from ui.ngo.ngo_donations_view import view_donations
+                page.add(view_donations(page, navigate_to, email))
 
 
             elif view == "user_home":
                 from ui.user.home import home_page as user_home
                 page.add(user_home(page, navigate_to, email))  # Pass email
+
+
+            elif view == "payment_gateway":
+                from ui.payment import payment_gateway_page
+                page.add(payment_gateway_page(page, navigate_to, email))
 
 
             else:

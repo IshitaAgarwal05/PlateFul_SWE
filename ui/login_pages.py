@@ -83,9 +83,9 @@ def login_page(page: ft.Page, navigate_to):
         if user_role == "admin":
             navigate_to(page, "admin_home", email)
         elif user_role == "food_supplier":
-            navigate_to(page, "fs_home", email)
+            navigate_to(page, "fs_desc", email)
         elif user_role == "ngo":
-            navigate_to(page, "ngo_home", email)
+            navigate_to(page, "ngo_desc", email)
         elif user_role in ["student_verification", "bpl_verification"]:
             navigate_to(page, "user_home", email)
         else:

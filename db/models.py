@@ -81,6 +81,26 @@ def login_user(email, password):
         return False
 
 
+def get_user_type(email):
+    """Returns the user type (NGO, BPLU, etc.) for the given email"""
+    try:
+        conn = sqlite3.connect("plateful.db")
+        cursor = conn.cursor()
+
+        cursor.execute('SELECT user_type FROM "USER" WHERE email = ?', (email,))
+        result = cursor.fetchone()
+        conn.close()
+
+        return result[0] if result else "unknown"
+    except Exception as e:
+        print(f"Error getting user type: {e}")
+        return "unknown"
+
+    except Exception as e:
+        print(f"Error getting user type: {e}")
+        return None
+
+
 def get_food_suppliers(user_id=1):
     conn = sqlite3.connect("plateful.db")
     cursor = conn.cursor()

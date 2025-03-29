@@ -1,6 +1,17 @@
 import flet as ft
 import sqlite3
 
+
+def get_ngo_details(ngo_id):
+    conn = sqlite3.connect("plateful.db")
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM NGO WHERE ngo_id = ?", (ngo_id,))
+    ngo = cursor.fetchone()
+    conn.close()
+    if ngo: return (ngo[4])
+    return None
+
+
 def donation_page(page: ft.Page, navigate_to, ngo_id):
     # Form fields with validation
     donor_name = ft.TextField(label="Full Name", hint_text="Enter your full name")
@@ -11,6 +22,15 @@ def donation_page(page: ft.Page, navigate_to, ngo_id):
         label="Amount (₹)",
         keyboard_type=ft.KeyboardType.NUMBER,
         hint_text="Enter donation amount"
+    )
+
+    # Back button at top left
+    back_button = ft.IconButton(
+        icon=ft.icons.ARROW_BACK,
+        icon_color=ft.colors.BLUE,
+        on_click=lambda _: navigate_to(page, "ngo_desc", get_ngo_details(ngo_id)),
+        tooltip="Go back",
+        icon_size=30
     )
 
     # Validation function
@@ -84,19 +104,39 @@ def donation_page(page: ft.Page, navigate_to, ngo_id):
     return ft.Container(
         content=ft.Column(
             controls=[
-                ft.Text("Make a Donation", size=24, weight="bold"),
+                # Header row with back button and title
+                ft.Row(
+                    controls=[
+                        back_button,
+                        ft.Text("Make a Donation", size=24, weight="bold", expand=True),
+                    ],
+                    alignment=ft.MainAxisAlignment.START,
+                    vertical_alignment=ft.CrossAxisAlignment.CENTER,
+                    width=page.width
+                ),
                 ft.Divider(height=20),
+
+                # Form fields
                 donor_name,
                 donor_email,
                 donor_aadhaar,
                 donor_contact,
                 amount,
-                ft.ElevatedButton(
-                    "Proceed to Payment",
-                    on_click=submit_donation,
-                    icon=ft.icons.PAYMENT,
-                    width=300,
-                    height=50
+
+                # Submit button
+                ft.Container(
+                    ft.ElevatedButton(
+                        "Proceed to Payment",
+                        on_click=submit_donation,
+                        icon=ft.icons.PAYMENT,
+                        width=300,
+                        height=50,
+                        style=ft.ButtonStyle(
+                            shape=ft.RoundedRectangleBorder(radius=10),
+                            padding=20
+                        )
+                    ),
+                    alignment=ft.alignment.center
                 )
             ],
             spacing=20,

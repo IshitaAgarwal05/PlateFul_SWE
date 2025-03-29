@@ -2,7 +2,7 @@ import flet as ft
 import sqlite3
 
 
-def supplier_insights(page: ft.Page, email):
+def supplier_insights(page: ft.Page, navigate_to, email):
     try:
         conn = sqlite3.connect("plateful.db")
         cursor = conn.cursor()
@@ -54,14 +54,33 @@ def supplier_insights(page: ft.Page, email):
                         (new_desc, supplier_name)
                     )
                     temp_conn.commit()
-                page.go("/login")
+                page.snack_bar = ft.SnackBar(ft.Text("Description updated successfully!"))
+                page.snack_bar.open = True
+                page.update()
+
+        # Back button
+        back_button = ft.IconButton(
+            icon=ft.icons.ARROW_BACK,
+            icon_color=ft.colors.BLUE,
+            on_click=lambda _: navigate_to(page, "fs_desc", email),
+            tooltip="Back to Supplier Dashboard"
+        )
 
         # Build UI
         return ft.Container(
             content=ft.Column([
+                ft.Row([
+                    back_button,
+                    ft.Text("Supplier Insights", size=20, weight="bold"),
+                ], alignment=ft.MainAxisAlignment.START),
+                ft.Divider(),
                 ft.Text(supplier_name, weight=ft.FontWeight.BOLD, size=24),
                 description_field,
-                ft.ElevatedButton("Update Description", on_click=update_description),
+                ft.ElevatedButton(
+                    "Update Description",
+                    on_click=update_description,
+                    icon=ft.icons.UPDATE
+                ),
                 ft.Text(f"Location: {location}", size=14, italic=True),
                 ft.Divider(),
                 ft.Text("Accepted Orders", weight=ft.FontWeight.BOLD, size=18),
@@ -69,11 +88,19 @@ def supplier_insights(page: ft.Page, email):
                 ft.Divider(),
                 ft.Text("Rejected Orders", weight=ft.FontWeight.BOLD, size=18),
                 ft.Text(f"Total: ₹{rejected_amount} | Orders: {rejected_orders}"),
-            ])
+            ],
+                spacing=20,
+                scroll=ft.ScrollMode.AUTO)
         )
 
     except Exception as e:
-        return ft.Text(f"Error: {str(e)}", color="red")
+        return ft.Column([
+            ft.Text(f"Error: {str(e)}", color="red", size=20),
+            ft.ElevatedButton(
+                "Back to Dashboard",
+                on_click=lambda _: navigate_to(page, "fs_desc", email)
+            )
+        ])
 
     finally:
         if 'conn' in locals() and conn:

@@ -1,5 +1,6 @@
 import flet as ft
 from db.connection import initialize_database
+from db.models import get_user_type
 from ui.login_pages import login_page, registration_page, registration_success_page
 from ui.onboarding_pages import show_loading
 from ui.user.current_order import curr_order
@@ -31,7 +32,10 @@ def main(page: ft.Page):
     # Function to navigate to different views
     def navigate_to(page, view, email=None):
         try:
+            page.controls.clear()
+            page.update()
             page.clean()
+
             if view == "welcome":
                 page.add(show_loading(page, navigate_to))  # Add the returned content
             elif view == "login":
@@ -50,11 +54,11 @@ def main(page: ft.Page):
 
 
             elif view == "fs_desc":
-                from ui.fs.fs_desc import desc
-                desc(page, navigate_to, email)
+                from ui.fs.fs_desc import desc as fs_desc
+                fs_desc(page, navigate_to, email)
             elif view == "supplier_insights":
                 from ui.fs.fs_insights import supplier_insights
-                insights_component = supplier_insights(page, email)
+                insights_component = supplier_insights(page, navigate_to, email)
                 if not isinstance(insights_component, ft.Control):
                     raise ValueError("Invalid component returned")
                 page.add(insights_component)
@@ -77,6 +81,9 @@ def main(page: ft.Page):
             elif view == "user_home":
                 from ui.user.home import home_page as user_home
                 page.add(user_home(page, navigate_to, email))  # Pass email
+            elif view == "user_profile":
+                from ui.user.profile import profile
+                page.add(profile(page, navigate_to, email))
 
 
             elif view == "payment_gateway":
@@ -85,7 +92,43 @@ def main(page: ft.Page):
 
 
             else:
-                ft.Text("🚧 Page not found")  # Prevent `None` issues
+                # Function to handle profile navigation
+                def navigate_to_profile(e):
+                    try:
+                        user_type = get_user_type(email)
+                        if user_type == "ngo":
+                            navigate_to(page, "ngo_desc", email)
+                        elif user_type in ["student_verification", "bpl_verification"]:
+                            navigate_to(page, "user_profile", email)
+                        elif user_type == "food_supplier":
+                            navigate_to(page, "fs_profile", email)
+                        else:
+                            page.snack_bar = ft.SnackBar(
+                                ft.Text(f"No profile page available for {user_type} users"),
+                                bgcolor=ft.colors.RED
+                            )
+                            page.snack_bar.open = True
+                            page.update()
+                    except Exception as e:
+                        page.snack_bar = ft.SnackBar(
+                            ft.Text(f"Error navigating to profile: {str(e)}"),
+                            bgcolor=ft.colors.RED
+                        )
+                        page.snack_bar.open = True
+                        page.update()
+
+                page.add(ft.Column(
+                    [
+                        ft.Text("🚧 Page content could not be loaded", size=20, color="red"),
+                        ft.ElevatedButton(
+                            "Go Home",
+                            on_click=lambda _: navigate_to_profile,
+                            icon=ft.icons.HOME
+                        )
+                    ],
+                    alignment=ft.MainAxisAlignment.CENTER,
+                    horizontal_alignment=ft.CrossAxisAlignment.CENTER
+                ))
 
             page.update()
 

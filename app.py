@@ -3,7 +3,7 @@ from db.connection import initialize_database
 from db.models import get_user_type
 from ui.login_pages import login_page, registration_page, registration_success_page
 from ui.onboarding_pages import show_loading
-from ui.user.current_order import curr_order
+# from ui.user.current_order import curr_order
 
 
 def main(page: ft.Page):
@@ -47,7 +47,7 @@ def main(page: ft.Page):
 
 
             elif view == "menu":
-                page.add(curr_order(page, email))  # Pass email to curr_order
+                page.add(curr_order(page, navigate_to, email))  # Pass email to curr_order
             elif view == "admin_home":
                 from ui.user.home import home_page as admin_home
                 page.add(admin_home(page, navigate_to, email))  # Pass email

@@ -62,6 +62,9 @@ def main(page: ft.Page):
                 if not isinstance(insights_component, ft.Control):
                     raise ValueError("Invalid component returned")
                 page.add(insights_component)
+            elif view == "add_new_food":
+                from ui.fs.add_new_food_item import add_new_food
+                page.add(add_new_food(page, navigate_to, email))
 
 
             elif view == "ngo_home":
@@ -81,14 +84,13 @@ def main(page: ft.Page):
             elif view == "user_home":
                 from ui.user.home import home_page as user_home
                 page.add(user_home(page, navigate_to, email))  # Pass email
-            elif view == "user_profile":
-                from ui.user.profile import profile
-                page.add(profile(page, navigate_to, email))
-
+            # elif view == "user_profile":
+            #     from ui.user.profile import profile
+            #     page.add(profile(page, navigate_to, email))
 
             elif view == "payment_gateway":
-                from ui.payment import payment_gateway_page
-                page.add(payment_gateway_page(page, navigate_to, email))
+                from ui.payment import payment_page
+                page.add(payment_page(page, navigate_to, email, amount=None))  # Pass email and amount
 
 
             else:

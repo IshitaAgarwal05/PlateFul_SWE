@@ -110,6 +110,10 @@ def food_supplier_page(page, navigate_to, email):
                 ], alignment="center"),
                 padding=10,
             ),
+            ft.ElevatedButton(
+                "Add Food Item",
+                on_click=lambda _: navigate_to(page, "add_new_food", email)
+            ),
             ft.Column(
                 menu_list,
                 spacing=10,

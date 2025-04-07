@@ -30,7 +30,7 @@ def main(page: ft.Page):
 
     # print("A")
     # Function to navigate to different views
-    def navigate_to(page, view, email=None):
+    def navigate_to(page, view, email=None, id=None):
         try:
             page.controls.clear()
             page.update()
@@ -87,6 +87,12 @@ def main(page: ft.Page):
             # elif view == "user_profile":
                 # from ui.user.profile import profile
                 # page.add(profile(page, navigate_to, email))
+            elif view == "user_menu_fs":
+                from ui.user.user_menu_fs import user_menu_fs
+                page.add(user_menu_fs(page, navigate_to, email, id))
+            elif view == "user_cart":
+                from ui.user.user_cart import cart_page
+                page.add(cart_page(page, navigate_to, email))
 
 
             elif view == "payment_gateway":

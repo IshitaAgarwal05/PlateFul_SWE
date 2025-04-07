@@ -84,9 +84,9 @@ def main(page: ft.Page):
             elif view == "user_home":
                 from ui.user.home import home_page as user_home
                 page.add(user_home(page, navigate_to, email))  # Pass email
-            # elif view == "user_profile":
-                # from ui.user.profile import profile
-                # page.add(profile(page, navigate_to, email))
+            elif view == "user_profile":
+                from ui.user.profile import profile
+                page.add(profile(page, navigate_to, email))
             elif view == "user_menu_fs":
                 from ui.user.user_menu_fs import user_menu_fs
                 page.add(user_menu_fs(page, navigate_to, email, id))

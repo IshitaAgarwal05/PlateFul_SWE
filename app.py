@@ -62,6 +62,9 @@ def main(page: ft.Page):
                 if not isinstance(insights_component, ft.Control):
                     raise ValueError("Invalid component returned")
                 page.add(insights_component)
+            elif view == "fs_add_new_food":
+                from ui.fs.add_new_food_item import add_new_food
+                add_new_food(page, navigate_to, email)
 
 
             elif view == "ngo_home":
@@ -93,7 +96,7 @@ def main(page: ft.Page):
 
             else:
                 # Function to handle profile navigation
-                def navigate_to_profile(e):
+                def navigate_to_profile(e, email):
                     try:
                         user_type = get_user_type(email)
                         if user_type == "ngo":
@@ -122,7 +125,7 @@ def main(page: ft.Page):
                         ft.Text("🚧 Page content could not be loaded", size=20, color="red"),
                         ft.ElevatedButton(
                             "Go Home",
-                            on_click=lambda _: navigate_to_profile,
+                            on_click=lambda _: navigate_to_profile(e, email),
                             icon=ft.icons.HOME
                         )
                     ],

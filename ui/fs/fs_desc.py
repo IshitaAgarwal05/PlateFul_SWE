@@ -112,7 +112,7 @@ def food_supplier_page(page, navigate_to, email):
             ),
             ft.ElevatedButton(
                 "Add Food Item",
-                on_click=lambda _: navigate_to(page, "add_new_food", email)
+                on_click=lambda _: navigate_to(page, "fs_add_new_food", email)
             ),
             ft.Column(
                 menu_list,

@@ -1,4 +1,5 @@
 import flet as ft
+import sqlite3
 from typing import Dict
 from ui.user.user_menu_fs import user_carts  # Import the shared cart storage
 
@@ -23,7 +24,7 @@ def get_item_details(item_id: int) -> Dict:
         conn.close()
 
 
-def cart_page(page: ft.Page, navigate_to, email):
+def cart_page(page: ft.Page, navigate_to, email, id):
     cart = user_carts.get(email, {})
 
     def get_cart_items():
@@ -50,15 +51,6 @@ def cart_page(page: ft.Page, navigate_to, email):
             cart[item_id] = new_quantity
         # Refresh the cart page
         navigate_to(page, "user_cart", email)
-
-    def checkout(e):
-        # Implement checkout logic here
-        page.snack_bar = ft.SnackBar(
-            ft.Text("Checkout functionality coming soon!"),
-            bgcolor=ft.colors.GREEN
-        )
-        page.snack_bar.open = True
-        page.update()
 
     if not cart_items:
         return ft.Column([
@@ -113,10 +105,10 @@ def cart_page(page: ft.Page, navigate_to, email):
             ),
             ft.ElevatedButton(
                 "Checkout",
-                on_click=checkout,
+                on_click=navigate_to(page, "payment_gateway", email, id),
                 color=ft.colors.WHITE,
                 bgcolor=ft.colors.GREEN,
                 expand=True
             )
         ], spacing=20)
-    ], padding=20, spacing=20)
+    ], spacing=20)

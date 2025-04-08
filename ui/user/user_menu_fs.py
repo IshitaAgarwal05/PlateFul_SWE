@@ -2,17 +2,16 @@ import flet as ft
 import sqlite3
 from typing import Optional, Dict, List
 
-# Global variable to store cart items (temporary in-memory storage)
+# Global variable to store cart items
 user_carts = {}
+user_current_restaurant = {}  # Track which restaurant the user is ordering from
 
 
 def get_supplier_menu(restaurant_id: int) -> Optional[Dict]:
     """Get food supplier menu with only available items"""
     conn = sqlite3.connect("plateful.db")
     cursor = conn.cursor()
-
     try:
-        # Get supplier info
         cursor.execute(
             "SELECT name, location, contact, rating, description FROM FOOD_SUPPLIER "
             "WHERE restaurant_id = ?",
@@ -21,9 +20,9 @@ def get_supplier_menu(restaurant_id: int) -> Optional[Dict]:
         supplier_data = cursor.fetchone()
 
         if not supplier_data:
+            print(f"No supplier found with ID: {restaurant_id}")
             return None
 
-        # Get available menu items
         cursor.execute(
             "SELECT item_id, name, price, description FROM FOOD_ITEM "
             "WHERE restaurant_id = ? AND available = 1",
@@ -55,20 +54,73 @@ def get_supplier_menu(restaurant_id: int) -> Optional[Dict]:
         conn.close()
 
 
-def create_menu_item_card(item: Dict, cart: Dict, update_cart_fn) -> ft.Card:
+def show_confirmation_dialog(page: ft.Page, restaurant_name: str, on_confirm):
+    """Show a dialog asking if the user wants to clear the cart"""
+
+    def close_dialog(e):
+        dialog.open = False
+        page.update()
+
+    dialog = ft.AlertDialog(
+        modal=True,
+        title=ft.Text("Clear Cart?"),
+        content=ft.Text(
+            f"Your cart has items from another restaurant. "
+            f"Do you want to clear it and add items from {restaurant_name}?"
+        ),
+        actions=[
+            ft.TextButton("No, Keep My Cart", on_click=close_dialog),
+            ft.TextButton("Yes, Clear Cart", on_click=lambda e: [close_dialog(e), on_confirm()]),
+        ],
+    )
+    page.dialog = dialog
+    dialog.open = True
+    page.update()
+
+
+def create_menu_item_card(
+    item: Dict,
+    cart: Dict,
+    page: ft.Page,
+    update_cart_fn,
+    current_restaurant_id: int,
+    email: str  # <-- Now explicitly passed
+) -> ft.Card:
     """Create a card for a single menu item with cart functionality"""
     quantity = cart.get(item['item_id'], 0)
-
     quantity_text = ft.Text(str(quantity), size=14, weight="bold")
 
     def update_quantity(increment):
+        nonlocal quantity
+        # Check if user is trying to add items from a different restaurant
+        if email in user_current_restaurant and user_current_restaurant[email] != current_restaurant_id:
+            # Show confirmation dialog
+            supplier_menu = get_supplier_menu(current_restaurant_id)
+            restaurant_name = supplier_menu['name'] if supplier_menu else "this restaurant"
+
+            def clear_and_update():
+                # Clear the cart and update restaurant
+                cart.clear()
+                user_current_restaurant[email] = current_restaurant_id
+                # Now add the item
+                new_quantity = max(0, 0 + increment)  # Start fresh
+                if new_quantity > 0:
+                    cart[item['item_id']] = new_quantity
+                quantity_text.value = str(new_quantity)
+                page.update()
+                update_cart_fn()
+
+            show_confirmation_dialog(page, restaurant_name, clear_and_update)
+            return
+
+        # Normal update if same restaurant
         new_quantity = max(0, quantity + increment)
         if new_quantity == 0:
             cart.pop(item['item_id'], None)
         else:
             cart[item['item_id']] = new_quantity
         quantity_text.value = str(new_quantity)
-        quantity_text.update()
+        page.update()
         update_cart_fn()
 
     return ft.Card(
@@ -115,15 +167,17 @@ def create_menu_item_card(item: Dict, cart: Dict, update_cart_fn) -> ft.Card:
     )
 
 
-def user_menu_page(page: ft.Page, navigate_to, email, restaurant_id: int):
+def user_menu_page(page: ft.Page, navigate_to, email, restaurant_id: int) -> ft.Column:
     """Main page showing food supplier's menu to users"""
-
-    # Initialize or get user's cart
     if email not in user_carts:
         user_carts[email] = {}
     cart = user_carts[email]
 
-    # Cart summary
+    # Track current restaurant (if cart is empty, set it)
+    if email not in user_current_restaurant or not cart:
+        user_current_restaurant[email] = restaurant_id
+
+    # Initialize controls first
     cart_summary = ft.Row(
         visible=False,
         controls=[
@@ -144,14 +198,13 @@ def user_menu_page(page: ft.Page, navigate_to, email, restaurant_id: int):
             cart_summary.visible = True
         else:
             cart_summary.visible = False
-        cart_summary.update()
+        page.update()
 
-    def load_menu():
+    def load_menu() -> ft.Column:
         supplier_menu = get_supplier_menu(restaurant_id)
         if not supplier_menu:
-            return ft.Text("Restaurant menu not available", color="red")
+            return ft.Column([ft.Text("Restaurant menu not available", color="red")])
 
-        # Create header
         header = ft.Container(
             content=ft.Column([
                 ft.Text(supplier_menu['name'], size=24, weight="bold"),
@@ -172,10 +225,18 @@ def user_menu_page(page: ft.Page, navigate_to, email, restaurant_id: int):
             padding=20
         )
 
-        # Create menu items
         menu_items = ft.Column(
-            controls=[create_menu_item_card(item, cart, update_cart_display)
-                      for item in supplier_menu['menu']],
+            controls=[
+                create_menu_item_card(
+                    item,
+                    cart,
+                    page,
+                    update_cart_display,
+                    restaurant_id,
+                    email
+                )
+                for item in supplier_menu['menu']
+            ],
             spacing=10,
             scroll=ft.ScrollMode.AUTO,
             expand=True
@@ -192,7 +253,7 @@ def user_menu_page(page: ft.Page, navigate_to, email, restaurant_id: int):
             menu_items
         ], expand=True)
 
-    # Main layout
+    # Build the complete layout
     content = ft.Column(
         controls=[
             cart_summary,
@@ -209,38 +270,42 @@ def user_menu_page(page: ft.Page, navigate_to, email, restaurant_id: int):
         expand=True
     )
 
-    # Initialize cart display
+    # Initialize cart display after all controls are created
     update_cart_display()
 
-    return ft.Container(
-        content=content,
-        padding=20,
-        expand=True
-    )
+    return content
 
 
-def user_menu_fs(page: ft.Page, navigate_to, email, restaurant_id: int):
+def user_menu_fs(page: ft.Page, navigate_to, email, restaurant_id: int) -> ft.Container:
     """Entry point for the menu page"""
     page.title = "Restaurant Menu"
     page.bgcolor = "#FFF3E0"
     page.horizontal_alignment = "center"
 
     try:
-        content = user_menu_page(page, navigate_to, email, restaurant_id)
-        if not isinstance(content, ft.Control):
-            raise ValueError("Invalid content returned from user_menu_page")
+        if not restaurant_id:
+            raise ValueError("Restaurant ID is required")
 
-        # Create a container to hold the content
-        container = ft.Container(
+        content = user_menu_page(page, navigate_to, email, restaurant_id)
+        if not content:
+            raise ValueError("Failed to create menu content")
+
+        return ft.Container(
             content=content,
+            padding=20,
             expand=True
         )
 
-        return container
-
     except Exception as e:
-        error_text = ft.Text(f"Error loading menu: {str(e)}", color="red")
+        print(f"Error in user_menu_fs: {e}")
         return ft.Container(
-            content=error_text,
-            alignment=ft.alignment.center
+            content=ft.Column([
+                ft.Text("Error loading menu", size=20, color="red"),
+                ft.Text(str(e), size=14),
+                ft.ElevatedButton(
+                    "Back to Restaurants",
+                    on_click=lambda _: navigate_to(page, "user_home", email)
+                )
+            ], alignment=ft.MainAxisAlignment.CENTER),
+            expand=True
         )

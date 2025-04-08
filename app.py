@@ -92,7 +92,7 @@ def main(page: ft.Page):
                 page.add(user_menu_fs(page, navigate_to, email, id))
             elif view == "user_cart":
                 from ui.user.user_cart import cart_page
-                page.add(cart_page(page, navigate_to, email))
+                page.add(cart_page(page, navigate_to, email, id))
 
 
             elif view == "payment_gateway":

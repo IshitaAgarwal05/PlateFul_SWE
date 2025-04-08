@@ -2,7 +2,7 @@ import flet as ft
 from db.connection import initialize_database
 from db.models import get_user_type
 from ui.login_pages import login_page, registration_page, registration_success_page
-from ui.onboarding_pages import show_loading
+from ui.onboarding_pages import onboarding
 # from ui.user.current_order import curr_order
 
 
@@ -37,7 +37,7 @@ def main(page: ft.Page):
             page.clean()
 
             if view == "welcome":
-                page.add(show_loading(page, navigate_to))  # Add the returned content
+                (onboarding(page, navigate_to)) 
             elif view == "login":
                 page.add(login_page(page, navigate_to))
             elif view == "register":
@@ -147,8 +147,8 @@ def main(page: ft.Page):
             page.add(ft.Text(f"Navigation error: {str(e)}", color="red", size=16))
             page.update()
 
-    # Start with the login view
-    navigate_to(page, "login")
+    # Start with the welcome view
+    navigate_to(page, "welcome")
 
 # print("AC")
 ft.app(target=main, view=ft.AppView.FLET_APP_WEB)

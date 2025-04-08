@@ -46,8 +46,6 @@ def main(page: ft.Page):
                 page.add(registration_success_page(page, navigate_to))
 
 
-            # elif view == "menu":
-            #     page.add(curr_order(page, navigate_to, email))  # Pass email to curr_order
             elif view == "admin_home":
                 from ui.user.home import home_page as admin_home
                 page.add(admin_home(page, navigate_to, email))  # Pass email

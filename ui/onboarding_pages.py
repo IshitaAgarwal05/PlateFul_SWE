@@ -86,7 +86,7 @@ def onboarding_page_5(page):
         ]
     )
 
-def onboarding_page_6(page):
+def onboarding_page_6(page, navigate_to):
     return ft.View(
         "/page6",
         controls=[
@@ -95,7 +95,7 @@ def onboarding_page_6(page):
                     ft.Icon(ft.icons.CHECK_CIRCLE_OUTLINE, size=100, color="teal"),
                     ft.Text("You're All Set!", size=30, weight="bold"),
                     ft.Text("Let’s get started.", size=18, color="grey"),
-                    ft.ElevatedButton("Finish", on_click=lambda e: page.go("/page1"))
+                    ft.ElevatedButton("Finish", on_click=lambda e: navigate_to(page, "login", email=None))
                 ], alignment="center", horizontal_alignment="center", spacing=20),
                 alignment=ft.alignment.center,
                 expand=True
@@ -103,7 +103,7 @@ def onboarding_page_6(page):
         ]
     )
 
-def main(page: ft.Page):
+def onboarding(page: ft.Page, navigate_to):
     page.title = "Onboarding Screens"
     page.bgcolor = ft.colors.WHITE
 
@@ -124,11 +124,9 @@ def main(page: ft.Page):
         elif route == "/page5":
             page.views.append(onboarding_page_5(page))
         elif route == "/page6":
-            page.views.append(onboarding_page_6(page))
+            page.views.append(onboarding_page_6(page, navigate_to))
 
         page.update()
 
     page.on_route_change = route_change
     page.go(page.route)
-
-ft.app(target=main)

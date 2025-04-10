@@ -3,7 +3,6 @@ from db.connection import initialize_database
 from db.models import get_user_type
 from ui.login_pages import login_page, registration_page, registration_success_page
 from ui.onboarding_pages import onboarding
-# from ui.user.current_order import curr_order
 
 
 def main(page: ft.Page):

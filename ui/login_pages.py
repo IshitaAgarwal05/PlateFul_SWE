@@ -14,7 +14,7 @@ def login_page(page: ft.Page, navigate_to):
         content=ft.Column(
             [
                 ft.Image(
-                    src="../assets/images/bg_1.png",  # Replace with your hosted image URL
+                    src="/assets/images/elements/general/bg_1.png",
                     fit=ft.ImageFit.COVER,
                     width=400,
                     height=250,

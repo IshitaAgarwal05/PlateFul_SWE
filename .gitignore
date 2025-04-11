@@ -4,5 +4,5 @@ build/
 .DS_Store
 __pycache__/
 rough.py
-db/__pycache__
-ui/__pycache__
+db/__pycache__/
+ui/__pycache__/

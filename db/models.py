@@ -12,58 +12,108 @@ def user_exists(email):
     conn.close()
     return user is not None
 
-def register_user(name, contact, email, location, user_type, password):
-    if user_exists(email):
+
+def is_student_in_list(student_id, institution):
+    """Check if student exists in STUDENT_LIST table"""
+    try:
+        conn = sqlite3.connect("plateful.db")
+        cursor = conn.cursor()
+        cursor.execute('''
+            SELECT * FROM STUDENT_LIST 
+            WHERE student_id = ? AND institution = ?
+        ''', (student_id, institution))
+        result = cursor.fetchone()
+        conn.close()
+        return result is not None
+    except Exception as e:
+        print(f"Error checking student list: {e}")
         return False
+
+
+def is_bpl_in_list(bpl_card_number, name, location):
+    """Check if BPL user exists in BPL_LIST table"""
+    try:
+        conn = sqlite3.connect("plateful.db")
+        cursor = conn.cursor()
+        cursor.execute('''
+            SELECT * FROM BPL_LIST 
+            WHERE bpl_card_number = ? AND name = ? AND location = ?
+        ''', (bpl_card_number, name, location))
+        result = cursor.fetchone()
+        conn.close()
+        return result is not None
+    except Exception as e:
+        print(f"Error checking BPL list: {e}")
+        return False
+
+
+def register_user(name, contact, email, location, user_type, password, student_id=None, institution=None,
+                  bpl_card_number=None):
+    if user_exists(email):
+        return False, "User already exists with this email"
 
     try:
         conn = sqlite3.connect('plateful.db')
         cursor = conn.cursor()
+
+        # Additional verification for StudentU and BPLU
+        if user_type == "StudentU":
+            if not student_id or not institution:
+                return False, "Student ID and Institution are required"
+            if not is_student_in_list(student_id, institution):
+                return False, "Student not found in official records. Please check your details."
+
+        elif user_type == "BPLU":
+            if not bpl_card_number:
+                return False, "BPL card number is required"
+            if not is_bpl_in_list(bpl_card_number, name, location):
+                return False, "BPL card holder not found in official records. Please check your details."
+
+        # Insert into USER table
         cursor.execute('''
         INSERT INTO USER (user_type, name, contact, email, location, password)
         VALUES (?, ?, ?, ?, ?, ?)
         ''', (user_type, name, contact, email, location, password))
 
-        # Get the newly inserted user's ID
         user_id = cursor.lastrowid
 
-        # Map user to corresponding table based on user_type
+        # Map user to corresponding table
         if user_type == "FS Employee":
             cursor.execute('''
-                    INSERT INTO FOOD_SUPPLIER (restaurant_id, name, contact, email, location)
-                    VALUES (?, ?, ?, ?, ?)
-                    ''', (user_id, name, contact, email, location))
+                INSERT INTO FOOD_SUPPLIER (restaurant_id, name, contact, email, location)
+                VALUES (?, ?, ?, ?, ?)
+                ''', (user_id, name, contact, email, location))
         elif user_type == "NGO Employee":
             cursor.execute('''
-                    INSERT INTO NGO (ngo_id, name, contact, email, location)
-                    VALUES (?, ?, ?, ?, ?)
-                    ''', (user_id, name, contact, email, location))
+                INSERT INTO NGO (ngo_id, name, contact, email, location)
+                VALUES (?, ?, ?, ?, ?)
+                ''', (user_id, name, contact, email, location))
         elif user_type == "BPLU":
             cursor.execute('''
-                    INSERT INTO BPL_VERIFICATION (user_id, name, contact, email, location)
-                    VALUES (?, ?, ?, ?, ?)
-                    ''', (user_id, name, contact, email, location))
+                INSERT INTO BPL_VERIFICATION (user_id, bpl_card_number, name, contact, email, location)
+                VALUES (?, ?, ?, ?, ?, ?)
+                ''', (user_id, bpl_card_number, name, contact, email, location))
         elif user_type == "StudentU":
             cursor.execute('''
-                    INSERT INTO STUDENT_VERIFICATION (user_id, name, contact, email, location)
-                    VALUES (?, ?, ?, ?, ?)
-                    ''', (user_id, name, contact, email, location))
+                INSERT INTO STUDENT_VERIFICATION (user_id, student_id, institution, name, contact, email, location)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+                ''', (user_id, student_id, institution, name, contact, email, location))
         elif user_type == "Admin":
             cursor.execute('''
-                    INSERT INTO ADMIN (name, contact, email, location, password)
-                    VALUES (?, ?, ?, ?, ?)
-                    ''', (name, contact, email, location, password))
+                INSERT INTO ADMIN (name, contact, email, location, password)
+                VALUES (?, ?, ?, ?, ?)
+                ''', (name, contact, email, location, password))
 
         conn.commit()
         conn.close()
-        print(f"User registered successfully and mapped to {user_type} table!")
-        return True
+        return True, "Registration successful"
 
     except Exception as e:
         print(f"Error registering user: {e}")
-        conn.rollback()  # Rollback the transaction in case of an error
-        conn.close()
-        return False
+        if conn:
+            conn.rollback()
+            conn.close()
+        return False, f"Registration failed: {str(e)}"
 
 
 def login_user(email, password):

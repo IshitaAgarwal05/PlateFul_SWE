@@ -1,6 +1,7 @@
 import flet as ft
 import sqlite3
 from db.models import register_user, login_user
+import asyncio
 
 
 def login_page(page: ft.Page, navigate_to):
@@ -196,89 +197,108 @@ def login_page(page: ft.Page, navigate_to):
     )
 
 
-
-
 def registration_page(page, navigate_to):
-    username_field = ft.TextField(label="Username", on_change=lambda e: update_register_button_state())
-    contact_field = ft.TextField(label="Contact Number", on_change=lambda e: update_register_button_state())
-    email_field = ft.TextField(label="Email", on_change=lambda e: update_register_button_state())
-    location_field = ft.TextField(label="Location", on_change=lambda e: update_register_button_state())
+    # Define all fields at the beginning
+    username_field = ft.TextField(label="Full Name")
+    contact_field = ft.TextField(label="Contact Number")
+    email_field = ft.TextField(label="Email")
+    location_field = ft.TextField(label="Location")
+
+    # Additional fields for verification (initially hidden)
+    student_id_field = ft.TextField(label="Student ID", visible=False)
+    institution_field = ft.TextField(label="Institution", visible=False)
+    bpl_card_field = ft.TextField(label="BPL Card Number", visible=False)
+
     user_type_field = ft.Dropdown(
         label="User Type",
         options=[
             ft.dropdown.Option(key="Admin", text="Admin"),
             ft.dropdown.Option(key="FS Employee", text="FS Employee"),
             ft.dropdown.Option(key="NGO Employee", text="NGO Employee"),
-            ft.dropdown.Option(key="BPLU", text="BPLU"),
-            ft.dropdown.Option(key="StudentU", text="StudentU"),
+            ft.dropdown.Option(key="BPLU", text="BPL Card Holder"),
+            ft.dropdown.Option(key="StudentU", text="Student"),
         ],
-        on_change=lambda e: update_register_button_state()
+        on_change=lambda e: handle_user_type_change(e)
     )
-    password_field = ft.TextField(label="Password", password=True, on_change=lambda e: update_register_button_state())
 
-    # Define handle_register before it is referenced
-    def handle_register(_):
-        # Check if the user already exists
-        if user_exists(email_field.value):
-            page.snack_bar = ft.SnackBar(
-                content=ft.Text("User already exists! Try a different username or email.", color="black"),
-                bgcolor="red",
-                action="OK",
-                duration=5000  # 5 seconds
-            )
-            page.snack_bar.open = True
-            page.update()
-            return  # Stop further execution
+    password_field = ft.TextField(label="Password", password=True)
 
-        # If user doesn't exist, proceed with registration
-        if register_user(username_field.value, contact_field.value, email_field.value, location_field.value, user_type_field.value,
-                         password_field.value):
-            page.snack_bar = ft.SnackBar(
-                content=ft.Text("Registered successfully!", color="red"),
-                action="OK",
-                duration=3000  # 3 seconds
-            )
-            page.snack_bar.open = True
-            page.update()
+    # Verification progress indicator
+    progress_ring = ft.ProgressRing(width=20, height=20, visible=False)
+    status_text = ft.Text("", color="white")
+    verification_status = ft.Row(
+        [progress_ring, status_text],
+        alignment=ft.MainAxisAlignment.CENTER,
+        visible=False
+    )
 
-            # Show registration success message
-            navigate_to(page, "registration-success")
+    def handle_user_type_change(e):
+        # Show/hide additional fields based on user type
+        is_student = user_type_field.value == "StudentU"
+        is_bpl = user_type_field.value == "BPLU"
 
-        else:
-            page.snack_bar = ft.SnackBar(
-                content=ft.Text("Registration failed. Try again!", color="black"),
-                bgcolor="red",
-                action="OK",
-                duration=3000  # 3 seconds
-            )
-            page.snack_bar.open = True
-            page.update()
+        student_id_field.visible = is_student
+        institution_field.visible = is_student
+        bpl_card_field.visible = is_bpl
 
-    def user_exists(email):
-        conn = sqlite3.connect("plateful.db")
-        cursor = conn.cursor()
-
-        cursor.execute('SELECT * FROM "USER" WHERE email = ?', (email,))
-        user = cursor.fetchone()
-
-        conn.close()
-        return user is not None
-
-    # Define update_register_button_state
-    def update_register_button_state():
-        # Enable the button only if all fields are filled
-        register_button.disabled = not (
-                username_field.value.strip() and
-                contact_field.value.strip() and
-                email_field.value.strip() and
-                location_field.value.strip() and
-                password_field.value.strip() and
-                user_type_field.value
-        )
         page.update()
 
-    # Create the register button after handle_register is defined
-    register_button = ft.ElevatedButton(text="Submit", on_click=handle_register, disabled=True)
+    async def handle_register(_):
+        # Show verification in progress
+        register_button.disabled = True
+        verification_status.visible = True
+        progress_ring.visible = True
+        status_text.value = "Verifying credentials..."
+        status_text.color = "white"
+        page.update()
+
+        # Get additional fields based on user type
+        student_id = student_id_field.value if user_type_field.value == "StudentU" else None
+        institution = institution_field.value if user_type_field.value == "StudentU" else None
+        bpl_card_number = bpl_card_field.value if user_type_field.value == "BPLU" else None
+
+        try:
+            # Simulate verification delay (remove in production)
+            await asyncio.sleep(1)
+
+            success, message = register_user(
+                username_field.value,
+                contact_field.value,
+                email_field.value,
+                location_field.value,
+                user_type_field.value,
+                password_field.value,
+                student_id,
+                institution,
+                bpl_card_number
+            )
+
+            if success:
+                status_text.value = "Verification successful!"
+                status_text.color = "green"
+                page.update()
+
+                # Wait 2 seconds before navigating
+                await asyncio.sleep(2)
+                navigate_to(page, "registration-success")
+            else:
+                status_text.value = message
+                status_text.color = "red"
+                register_button.disabled = False
+                progress_ring.visible = False
+                page.update()
+
+        except Exception as e:
+            status_text.value = f"Error: {str(e)}"
+            status_text.color = "red"
+            register_button.disabled = False
+            progress_ring.visible = False
+            page.update()
+
+    register_button = ft.ElevatedButton(
+        text="Submit",
+        on_click=handle_register
+    )
 
     return ft.Container(
         content=ft.Column([
@@ -288,10 +308,15 @@ def registration_page(page, navigate_to):
             email_field,
             location_field,
             user_type_field,
+            student_id_field,
+            institution_field,
+            bpl_card_field,
             password_field,
+            verification_status,
             register_button
         ])
     )
+
 
 def registration_success_page(page, navigate_to):
     return ft.Container(

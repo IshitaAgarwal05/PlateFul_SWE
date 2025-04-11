@@ -1,5 +1,23 @@
 import flet as ft
+import sqlite3
 
+def get_user_profile(email):
+    conn = sqlite3.connect("plateful.db")
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT name, phone, email FROM USERS WHERE email = ?", (email,))
+    result = cursor.fetchone()
+    conn.close()
+
+    if result:
+        return {
+            "name": result[0],
+            "phone": result[1],
+            "email": result[2],
+        }
+    else:
+        return None
+    
 def profile(page: ft.Page, navigate_to, email):
     # Set strict mobile-specific page configuration
     page.title = "Profile"
@@ -9,10 +27,17 @@ def profile(page: ft.Page, navigate_to, email):
     page.window_height = 640  # Fixed mobile height
     page.window_resizable = False  # Prevent resizing to PC-like dimensions
 
-    # Sample profile data (you can replace these with dynamic data)
-    profile_name = "Amit Sinhal"
-    profile_phone = "+91 94254 76655"
-    profile_email = "amitsinhal@jklu.edu.in"
+    # Fetch from database using the provided email
+    user_data = get_user_profile(email)
+
+    if not user_data:
+        page.clean()
+        page.add(ft.Text("❌ User not found!", color="red", size=20))
+        return
+
+    profile_name = user_data["name"]
+    profile_phone = user_data["phone"]
+    profile_email = user_data["email"]
 
     # Dark mode state (set to False by default for light mode)
     dark_mode = False  # Default to light mode

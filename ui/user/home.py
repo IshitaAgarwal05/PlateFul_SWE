@@ -198,7 +198,6 @@ def home_page(page: ft.Page, navigate_to, email):
                 alignment=ft.MainAxisAlignment.SPACE_AROUND,
                 controls=[
                     ft.IconButton(icon=ft.icons.HOME, icon_color=ft.colors.BLUE),
-                    ft.IconButton(icon=ft.icons.SEARCH),
                     ft.IconButton(icon=ft.icons.FAVORITE_BORDER),
                     ft.IconButton(
                         icon=ft.icons.PERSON,

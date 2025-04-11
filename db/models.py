@@ -265,3 +265,36 @@ def add_order_item(order_id, food_item_id, quantity, unit_price):
             print(f"Error: {e}")
         finally:
             close_connection(connection)
+
+
+def update_food_item_quantity(item_id: int, quantity_purchased: int):
+    """Update the quantity of a food item after purchase"""
+    conn = sqlite3.connect('plateful.db')
+    cursor = conn.cursor()
+    try:
+        # Get current quantity
+        cursor.execute("SELECT quantity FROM FOOD_ITEM WHERE item_id = ?", (item_id,))
+        current_quantity = cursor.fetchone()[0]
+
+        new_quantity = current_quantity - quantity_purchased
+        if new_quantity <= 0:
+            # Update quantity and set available to 0 if none left
+            cursor.execute(
+                "UPDATE FOOD_ITEM SET quantity = 0, available = 0 WHERE item_id = ?",
+                (item_id,)
+            )
+        else:
+            # Just update the quantity
+            cursor.execute(
+                "UPDATE FOOD_ITEM SET quantity = ? WHERE item_id = ?",
+                (new_quantity, item_id)
+            )
+
+        conn.commit()
+        return True
+    except Exception as e:
+        print(f"Error updating quantity: {e}")
+        conn.rollback()
+        return False
+    finally:
+        conn.close()

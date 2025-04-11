@@ -1,15 +1,14 @@
 import flet as ft
 import sqlite3
 from typing import Optional, Dict, List
-from db.models import get_user_type
-
+from db.models import get_user_type, update_food_item_quantity
 
 # Global variable to store cart items
 user_carts = {}
 
 
 def get_supplier_menu_with_dynamic_pricing(restaurant_id: int, user_type: str) -> Optional[Dict]:
-    """Get food supplier menu with dynamic pricing based on user type"""
+    """Get food supplier menu with dynamic pricing and quantity info"""
     conn = sqlite3.connect("plateful.db")
     cursor = conn.cursor()
     try:
@@ -25,8 +24,8 @@ def get_supplier_menu_with_dynamic_pricing(restaurant_id: int, user_type: str) -
             return None
 
         cursor.execute(
-            "SELECT item_id, name, price, description FROM FOOD_ITEM "
-            "WHERE restaurant_id = ? AND available = 1",
+            "SELECT item_id, name, price, description, quantity FROM FOOD_ITEM "
+            "WHERE restaurant_id = ? AND available = 1 AND quantity > 0",
             (restaurant_id,)
         )
         menu_items = cursor.fetchall()
@@ -35,22 +34,24 @@ def get_supplier_menu_with_dynamic_pricing(restaurant_id: int, user_type: str) -
         discounted_menu = []
         for item in menu_items:
             original_price = item[2]
+            quantity = item[4]
 
             if user_type == "StudentU":
-                discounted_price = original_price * 0.6  # 60% of original
+                discounted_price = original_price * 0.6
             elif user_type == "BPLU":
-                discounted_price = original_price * 0.3  # 30% of original
+                discounted_price = original_price * 0.3
             elif user_type == "NGO Employee":
-                discounted_price = original_price * 0.5  # 50% of original
+                discounted_price = original_price * 0.5
             else:
-                discounted_price = original_price  # No discount for others
+                discounted_price = original_price
 
             discounted_menu.append({
                 "item_id": item[0],
                 "name": item[1],
                 "original_price": original_price,
                 "discounted_price": discounted_price,
-                "description": item[3]
+                "description": item[3],
+                "available_quantity": quantity
             })
 
         return {
@@ -74,9 +75,18 @@ def create_menu_item_card(item: Dict, cart: Dict, page: ft.Page, update_cart_fn)
     """Create a card for a single menu item with cart functionality"""
     quantity = cart.get(item['item_id'], 0)
     quantity_text = ft.Text(str(quantity), size=14, weight="bold")
+    available_quantity = item.get('available_quantity', 0)
 
     def update_quantity(increment):
         new_quantity = max(0, quantity + increment)
+        if new_quantity > available_quantity:
+            page.snack_bar = ft.SnackBar(
+                content=ft.Text(f"Only {available_quantity} available!", color="white"),
+                bgcolor="red"
+            )
+            page.snack_bar.open = True
+            return
+
         if new_quantity == 0:
             cart.pop(item['item_id'], None)
         else:
@@ -85,31 +95,34 @@ def create_menu_item_card(item: Dict, cart: Dict, page: ft.Page, update_cart_fn)
         page.update()
         update_cart_fn()
 
-    # Price display - handle both original and discounted pricing
-    if 'discounted_price' in item:
-        price_display = ft.Column([
-            ft.Text(
-                f"₹{item['original_price']:.2f}",
-                size=12,
-                color=ft.colors.GREY_500,
-            ),
-            ft.Text(f"₹{item['discounted_price']:.2f}", size=14, color=ft.colors.GREEN)
-        ], spacing=0)
+    # Price display
+    price_display = ft.Column(spacing=0)
+    if 'original_price' in item and 'discounted_price' in item:
+        if item['original_price'] != item['discounted_price']:
+            price_display.controls.extend([
+                ft.Text(
+                    f"₹{item['original_price']:.2f}",
+                    size=12,
+                    color=ft.colors.GREY_500,
+                    # spans=[ft.TextSpan(style=ft.TextDecoration.LINE_THROUGH)]
+                ),
+                ft.Text(f"₹{item['discounted_price']:.2f}", size=14, color=ft.colors.GREEN)
+            ])
+        else:
+            price_display.controls.append(ft.Text(f"₹{item['original_price']:.2f}", size=14))
 
-    # Image handling with fallback
+    # Quantity available display
+    quantity_display = ft.Text(f"Available: {available_quantity}", size=12, color=ft.colors.BLUE)
+
+    # Image handling
     image = ft.Container(
         width=100,
         height=80,
         border_radius=10,
         content=ft.Image(
-            src=f"assets/images/fs/{item['item_id']}.png",  # Changed path
+            src=f"assets/images/fs/{item['item_id']}.png",
             fit=ft.ImageFit.COVER,
-            error_content=ft.Container(
-                width=100,
-                height=80,
-                alignment=ft.alignment.center,
-                content=ft.Icon(ft.icons.FASTFOOD, size=40, color=ft.colors.GREY)
-            )
+            error_content=ft.Icon(ft.icons.FASTFOOD, size=40)
         )
     )
 
@@ -120,34 +133,37 @@ def create_menu_item_card(item: Dict, cart: Dict, page: ft.Page, update_cart_fn)
                 ft.Column([
                     ft.Text(item['name'], size=16, weight="bold"),
                     price_display,
+                    quantity_display,
                     ft.Text(
                         item.get('description', 'No description available'),
                         size=12,
                         color=ft.colors.GREY_600,
-                        max_lines=2,
-                        overflow=ft.TextOverflow.ELLIPSIS
+                        max_lines=2
                     )
                 ], spacing=5, expand=True),
                 ft.Row([
                     ft.IconButton(
                         ft.icons.REMOVE,
                         on_click=lambda e: update_quantity(-1),
-                        icon_size=20
+                        icon_size=20,
+                        disabled=quantity <= 0
                     ),
                     quantity_text,
                     ft.IconButton(
                         ft.icons.ADD,
                         on_click=lambda e: update_quantity(1),
-                        icon_size=20
+                        icon_size=20,
+                        disabled=quantity >= available_quantity
                     ),
                 ], spacing=0)
-            ], spacing=15, vertical_alignment=ft.CrossAxisAlignment.CENTER),
+            ], spacing=15),
             padding=15,
             width=400
         ),
         elevation=3,
         margin=ft.margin.symmetric(vertical=5)
     )
+
 
 def user_menu_page(page: ft.Page, navigate_to, email, restaurant_id: int, user_type) -> ft.Column:
     """Main page showing food supplier's menu to users"""
@@ -178,17 +194,11 @@ def user_menu_page(page: ft.Page, navigate_to, email, restaurant_id: int, user_t
             cart_summary.visible = False
         page.update()
 
-
     def load_menu(user_type) -> ft.Column:
         try:
-            print(f"Loading menu for restaurant {restaurant_id}, user type {user_type}")  # Debug
             supplier_menu = get_supplier_menu_with_dynamic_pricing(restaurant_id, user_type)
-
             if not supplier_menu:
-                print("No supplier menu returned")  # Debug
                 return ft.Column([ft.Text("Restaurant menu not available", color="red")])
-
-            print(f"Found {len(supplier_menu['menu'])} menu items")  # Debug
 
             # User type badge
             user_badge = None
@@ -235,30 +245,19 @@ def user_menu_page(page: ft.Page, navigate_to, email, restaurant_id: int, user_t
 
             header_controls.append(ft.Divider())
 
-            #  Create a ListView for better performance with many items
+            # Create menu items list
             menu_list = ft.ListView(
                 spacing=10,
                 expand=True,
                 padding=10
             )
 
-            # Add items one by one with debug
             for item in supplier_menu['menu']:
-                print(f"Creating card for item: {item['name']}")  # Debug
-                try:
-                    card = create_menu_item_card(item, cart, page, update_cart_display)
-                    menu_list.controls.append(card)
-                except Exception as e:
-                    print(f"Error creating card for {item['name']}: {e}")
-                    menu_list.controls.append(
-                        ft.Text(f"Error loading item: {item['name']}", color="red")
-                    )
+                card = create_menu_item_card(item, cart, page, update_cart_display)
+                menu_list.controls.append(card)
 
             if not menu_list.controls:
-                print("No items added to menu")  # Debug
-                menu_list.controls.append(
-                    ft.Text("No available items at this time", color="gray")
-                )
+                menu_list.controls.append(ft.Text("No available items at this time", color="gray"))
 
             return ft.Column([
                 ft.Container(
@@ -270,12 +269,11 @@ def user_menu_page(page: ft.Page, navigate_to, email, restaurant_id: int, user_t
             ], expand=True)
 
         except Exception as e:
-            print(f"Error in load_menu: {e}")  # Debug
+            print(f"Error in load_menu: {e}")
             return ft.Column([
                 ft.Text("Error loading menu", color="red", size=20),
                 ft.Text(str(e), size=14)
             ])
-
 
     # Build the complete layout
     content = ft.Column(
@@ -294,7 +292,7 @@ def user_menu_page(page: ft.Page, navigate_to, email, restaurant_id: int, user_t
         expand=True
     )
 
-    # Initialize cart display after all controls are created
+    # Initialize cart display
     update_cart_display()
     return content
 

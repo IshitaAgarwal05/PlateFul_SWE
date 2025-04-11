@@ -20,6 +20,25 @@ def get_supplier_data(email):
     return restaurant, menu_items
 
 
+def update_quantity(item_id, new_quantity):
+    try:
+        quantity = int(new_quantity)
+        if 10 <= quantity <= 500:
+            available = 1 if quantity > 0 else 0
+            conn = sqlite3.connect("plateful.db")
+            cursor = conn.cursor()
+            cursor.execute(
+                "UPDATE FOOD_ITEM SET quantity=?, available=? WHERE item_id=?",
+                (quantity, available, item_id)
+            )
+            conn.commit()
+            conn.close()
+        else:
+            print("Quantity out of range")
+    except ValueError:
+        print("Invalid quantity entered")
+
+
 def food_supplier_page(page, navigate_to, email):
     def update_availability(item_id, value):
         conn = sqlite3.connect("plateful.db")
@@ -75,13 +94,22 @@ def food_supplier_page(page, navigate_to, email):
             menu_list.append(ft.Text("⚠️ No menu items available."))
         else:
             for item in menu_items:
-                item_id, _, item_name, price, desc, available = item
+                item_id, _, item_name, price, desc, available, quantity = item  # include quantity in unpacking
                 status_color = "green" if available else "red"
+
+                quantity_field = ft.TextField(
+                    label="Quantity",
+                    value=str(quantity),
+                    width=80,
+                    on_submit=lambda e, item_id=item_id: update_quantity(item_id, e.control.value),
+                )
+
                 switch = ft.Switch(
                     value=bool(available),
                     active_color=status_color,
                     on_change=lambda e, item_id=item_id: update_availability(item_id, e.control.value)
                 )
+
                 menu_list.append(
                     ft.Container(
                         content=ft.Row([
@@ -90,6 +118,7 @@ def food_supplier_page(page, navigate_to, email):
                                 ft.Text(item_name, size=18, weight="bold", color="black"),
                                 ft.Text(f"₹{price:.2f}", weight="bold", color="black"),
                                 ft.Text(desc, color="grey"),
+                                quantity_field,
                             ], spacing=5, expand=True),
                             switch,
                         ], alignment="center"),

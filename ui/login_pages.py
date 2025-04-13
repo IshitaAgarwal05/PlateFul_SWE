@@ -3,24 +3,26 @@ import sqlite3
 from db.models import register_user, login_user
 import asyncio
 
+# Common background color
+PAGE_BGCOLOR = "#FF6F4F"
+FORM_BGCOLOR = ft.colors.with_opacity(0.85, ft.colors.WHITE)
+
+def create_form_container(content):
+    """Creates a consistent white form container for all pages"""
+    return ft.Container(
+        content=content,
+        padding=30,
+        border_radius=20,
+        bgcolor=FORM_BGCOLOR,
+    )
 
 def login_page(page: ft.Page, navigate_to):
     page.title = "Plateful - Login"
     page.vertical_alignment = ft.MainAxisAlignment.CENTER
     page.horizontal_alignment = ft.CrossAxisAlignment.CENTER
-    page.bgcolor = "#f5f5f5"
+    page.bgcolor = PAGE_BGCOLOR
 
-    # 🖼️ Background Image (full screen behind all content)
-    background_image = ft.Image(
-        src="/assets/images/elements/general/bg_1.png",
-        fit=ft.ImageFit.COVER,
-        width=page.width,
-        height=page.height,
-        expand=True,
-        opacity=0.8
-    )
-
-    # 📧 Login fields
+    # Login fields
     email_field = ft.TextField(label="Email", on_change=lambda e: update_login_button_state())
     password_field = ft.TextField(label="Password", password=True, on_change=lambda e: update_login_button_state())
 
@@ -86,63 +88,44 @@ def login_page(page: ft.Page, navigate_to):
 
     login_button = ft.ElevatedButton("Log In", on_click=handle_login, disabled=True)
 
-    # 🧾 Foreground Login Form
-    login_form = ft.Container(
-        padding=30,
-        border_radius=20,
-        bgcolor=ft.colors.with_opacity(0.85, ft.colors.WHITE),
-        content=ft.Column([
-            ft.Text("Welcome to Plateful", size=24, weight=ft.FontWeight.BOLD, color="black"),
-            ft.Text("Sign In", size=20, weight=ft.FontWeight.BOLD, color="black"),
-            email_field,
-            password_field,
-            ft.Row([login_button], alignment=ft.MainAxisAlignment.CENTER),
-            ft.Row(
-                [
-                    ft.Container(width=100, content=ft.Divider(color="black")),
-                    ft.Text("OR", color="black"),
-                    ft.Container(width=100, content=ft.Divider(color="black")),
-                ],
-                alignment=ft.MainAxisAlignment.CENTER
-            ),
-            ft.Text("Don't have an account?", size=14, color="black"),
-            ft.OutlinedButton(
-                "Register",
-                icon=ft.icons.PERSON_ADD,
-                style=ft.ButtonStyle(color="black", side=ft.BorderSide(1, "black")),
-                on_click=lambda _: navigate_to(page, "register")
-            ),
-            ft.Text("Sign In with", size=14, weight=ft.FontWeight.BOLD, color="black"),
-            ft.ElevatedButton(
-                text="Gmail",
-                icon=ft.icons.EMAIL,
-                bgcolor="white",
-                color="black",
-                width=300,
-            ),
-            ft.Row([
-                ft.ElevatedButton("Facebook", icon=ft.icons.FACEBOOK, bgcolor="white", color="black", width=140),
-                ft.ElevatedButton("Google", icon=ft.icons.ACCOUNT_CIRCLE_OUTLINED, bgcolor="white", color="black", width=140),
-            ], alignment=ft.MainAxisAlignment.CENTER),
-            ft.Text(
-                "By continuing, you agree to our Terms of Service, Privacy Policy, and Content Policy.",
-                size=10,
-                color="black",
-                text_align=ft.TextAlign.CENTER,
-            ),
-        ],
-            alignment=ft.MainAxisAlignment.CENTER,
-            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-            spacing=15,
+    # Login form content
+    form_content = ft.Column([
+        ft.Text("Welcome to Plateful", size=24, weight=ft.FontWeight.BOLD, color="black"),
+        ft.Text("Sign In", size=20, weight=ft.FontWeight.BOLD, color="black"),
+        email_field,
+        password_field,
+        ft.Row([login_button], alignment=ft.MainAxisAlignment.CENTER),
+        ft.Row(
+            [
+                ft.Container(width=100, content=ft.Divider(color="black")),
+                ft.Text("OR", color="black"),
+                ft.Container(width=100, content=ft.Divider(color="black")),
+            ],
+            alignment=ft.MainAxisAlignment.CENTER
         ),
+        ft.Text("Don't have an account?", size=14, color="black"),
+        ft.OutlinedButton(
+            "Register",
+            icon=ft.icons.PERSON_ADD,
+            style=ft.ButtonStyle(color="black", side=ft.BorderSide(1, "black")),
+            on_click=lambda _: navigate_to(page, "register")
+        ),
+        ft.Text(
+            "By continuing, you agree to our Terms of Service, Privacy Policy, and Content Policy.",
+            size=10,
+            color="black",
+            text_align=ft.TextAlign.CENTER,
+        ),
+    ],
+        alignment=ft.MainAxisAlignment.CENTER,
+        horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+        spacing=15,
     )
 
-    # Main container with background and form
-    main_container = ft.Container(
+    return ft.Container(
         content=ft.Stack([
-            background_image,
             ft.Container(
-                content=login_form,
+                content=create_form_container(form_content),
                 alignment=ft.alignment.center,
                 padding=40
             )
@@ -150,18 +133,19 @@ def login_page(page: ft.Page, navigate_to):
         expand=True
     )
 
-    return main_container
-
-
-
 def registration_page(page, navigate_to):
-    # Define all fields at the beginning
+    page.title = "Plateful - Register"
+    page.vertical_alignment = ft.MainAxisAlignment.CENTER
+    page.horizontal_alignment = ft.CrossAxisAlignment.CENTER
+    page.bgcolor = PAGE_BGCOLOR
+
+    # Form fields
     username_field = ft.TextField(label="Full Name")
     contact_field = ft.TextField(label="Contact Number")
     email_field = ft.TextField(label="Email")
     location_field = ft.TextField(label="Location")
 
-    # Additional fields for verification (initially hidden)
+    # Additional fields for verification
     student_id_field = ft.TextField(label="Student ID", visible=False)
     institution_field = ft.TextField(label="Institution", visible=False)
     bpl_card_field = ft.TextField(label="BPL Card Number", visible=False)
@@ -182,7 +166,7 @@ def registration_page(page, navigate_to):
 
     # Verification progress indicator
     progress_ring = ft.ProgressRing(width=20, height=20, visible=False)
-    status_text = ft.Text("", color="white")
+    status_text = ft.Text("", color="black")
     verification_status = ft.Row(
         [progress_ring, status_text],
         alignment=ft.MainAxisAlignment.CENTER,
@@ -190,34 +174,27 @@ def registration_page(page, navigate_to):
     )
 
     def handle_user_type_change(e):
-        # Show/hide additional fields based on user type
         is_student = user_type_field.value == "StudentU"
         is_bpl = user_type_field.value == "BPLU"
 
         student_id_field.visible = is_student
         institution_field.visible = is_student
         bpl_card_field.visible = is_bpl
-
         page.update()
 
     async def handle_register(_):
-        # Show verification in progress
         register_button.disabled = True
         verification_status.visible = True
         progress_ring.visible = True
         status_text.value = "Verifying credentials..."
-        status_text.color = "white"
         page.update()
 
-        # Get additional fields based on user type
         student_id = student_id_field.value if user_type_field.value == "StudentU" else None
         institution = institution_field.value if user_type_field.value == "StudentU" else None
         bpl_card_number = bpl_card_field.value if user_type_field.value == "BPLU" else None
 
         try:
-            # Simulate verification delay (remove in production)
             await asyncio.sleep(1)
-
             success, message = register_user(
                 username_field.value,
                 contact_field.value,
@@ -234,8 +211,6 @@ def registration_page(page, navigate_to):
                 status_text.value = "Verification successful!"
                 status_text.color = "green"
                 page.update()
-
-                # Wait 2 seconds before navigating
                 await asyncio.sleep(2)
                 navigate_to(page, "registration-success")
             else:
@@ -257,30 +232,61 @@ def registration_page(page, navigate_to):
         on_click=handle_register
     )
 
+    # Registration form content
+    form_content = ft.Column([
+        ft.Text("Register", size=24, weight=ft.FontWeight.BOLD, color="black"),
+        username_field,
+        contact_field,
+        email_field,
+        location_field,
+        user_type_field,
+        student_id_field,
+        institution_field,
+        bpl_card_field,
+        password_field,
+        verification_status,
+        ft.Row([register_button], alignment=ft.MainAxisAlignment.CENTER)
+    ], spacing=15)
+
     return ft.Container(
-        content=ft.Column([
-            ft.Text("Register", size=20, weight=ft.FontWeight.BOLD),
-            username_field,
-            contact_field,
-            email_field,
-            location_field,
-            user_type_field,
-            student_id_field,
-            institution_field,
-            bpl_card_field,
-            password_field,
-            verification_status,
-            register_button
-        ])
+        content=ft.Stack([
+            ft.Container(
+                content=create_form_container(form_content),
+                alignment=ft.alignment.center,
+                padding=40
+            )
+        ]),
+        expand=True
     )
 
-
 def registration_success_page(page, navigate_to):
+    page.title = "Plateful - Registration Success"
+    page.vertical_alignment = ft.MainAxisAlignment.CENTER
+    page.horizontal_alignment = ft.CrossAxisAlignment.CENTER
+    page.bgcolor = PAGE_BGCOLOR
+
+    # Success page content
+    form_content = ft.Column([
+        ft.Icon(ft.icons.CHECK_CIRCLE, size=50, color="green"),
+        ft.Text("Registration Successful!", size=24, weight=ft.FontWeight.BOLD, color="black"),
+        ft.Text("You can now log in to your account.", size=16, color="black"),
+        ft.ElevatedButton(
+            text="Go to Login",
+            on_click=lambda _: navigate_to(page, "login"),
+            style=ft.ButtonStyle(padding=20)
+        )
+    ],
+        horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+        spacing=20
+    )
+
     return ft.Container(
-        content=ft.Column([
-            ft.Text("Registration Successful! You can now log in."),
-            ft.ElevatedButton(text="Go to Login", on_click=lambda _: navigate_to(page, "login"))
-        ], alignment=ft.MainAxisAlignment.CENTER),
-        alignment=ft.alignment.center,
-        padding=20
+        content=ft.Stack([
+            ft.Container(
+                content=create_form_container(form_content),
+                alignment=ft.alignment.center,
+                padding=40
+            )
+        ]),
+        expand=True
     )

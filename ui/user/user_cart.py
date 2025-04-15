@@ -7,9 +7,6 @@ import urllib.parse
 import time
 
 
-# Shared carty storage
-user_carts  ={}
-
 def get_item_details(item_id: int) -> Dict:
     """Get details for a specific menu item"""
     conn = sqlite3.connect("plateful.db")
@@ -42,7 +39,6 @@ def get_food_supplier_location(food_supplier_id: int) -> Dict:
             (food_supplier_id,)
         )
         result = cursor.fetchone()
-
         print(f"Database result: {result}")  # Debug
 
         if result:
@@ -58,7 +54,135 @@ def get_food_supplier_location(food_supplier_id: int) -> Dict:
         conn.close()
 
 
+def create_feedback_page(page: ft.Page, navigate_to, email: str, restaurant_id: int) -> ft.Container:
+    """Create the feedback rating interface"""
+    food_rating = ft.Ref[ft.Row]()
+    service_rating = ft.Ref[ft.Row]()
+
+    def submit_feedback(e):
+        # Calculate ratings
+        food_stars = sum(1 for star in food_rating.current.controls if star.icon_color == ft.colors.AMBER)
+        service_stars = sum(1 for star in service_rating.current.controls if star.icon_color == ft.colors.AMBER)
+        average_rating = (food_stars + service_stars) / 2
+
+        # Update database
+        conn = sqlite3.connect("plateful.db")
+        try:
+            cursor = conn.cursor()
+            cursor.execute(
+                """UPDATE FOOD_SUPPLIER 
+                SET rating = COALESCE((rating * rating_count + ?) / (rating_count + 1), ?),
+                    rating_count = COALESCE(rating_count, 0) + 1
+                WHERE restaurant_id = ?""",
+                (average_rating, average_rating, restaurant_id)
+            )
+            conn.commit()
+
+            page.snack_bar = ft.SnackBar(
+                content=ft.Text("Thank you for your feedback!"),
+                bgcolor=ft.colors.GREEN
+            )
+            page.snack_bar.open = True
+            page.update()
+
+            time.sleep(2)
+            navigate_to(page, "user_home", email)
+        finally:
+            conn.close()
+
+    def create_star_rating(ref, label: str) -> ft.Column:
+        def star_click(e, index: int):
+            for i, star in enumerate(ref.current.controls):
+                star.icon_color = ft.colors.AMBER if i <= index else ft.colors.GREY
+            page.update()
+
+        stars = ft.Row(
+            ref=ref,
+            controls=[
+                ft.IconButton(
+                    icon=ft.icons.STAR,
+                    icon_color=ft.colors.GREY,
+                    on_click=lambda e, i=i: star_click(e, i)
+                )
+                for i in range(5)
+            ],
+            spacing=5
+        )
+
+        return ft.Container(
+            content=ft.Column([
+                ft.Text(label, size=16, weight="bold", color=ft.colors.BLACK),
+                stars
+            ], spacing=10),
+            bgcolor=ft.colors.WHITE,
+            padding=15,
+            border_radius=10,
+            margin=ft.margin.symmetric(vertical=5)
+        )
+
+
+    return ft.Container(
+        bgcolor="#FF6F4F",
+        content=ft.Column([
+            ft.Text("Share Your Experience", size=28, weight="bold", color=ft.colors.WHITE),
+            ft.Divider(color=ft.colors.AMBER_400),
+
+            ft.Container(
+                width=300,
+                height=180,
+                border_radius=15,
+                padding=50,
+                gradient=ft.LinearGradient(
+                    begin=ft.alignment.top_left,
+                    end=ft.alignment.bottom_right,
+                    colors=[ft.colors.BLUE_800, ft.colors.PURPLE_800]
+                ),
+                content=ft.Column([
+                    ft.Icon(ft.icons.RESTAURANT, size=50, color=ft.colors.AMBER_100),
+                    ft.Text("How was your visit?", size=18, color=ft.colors.WHITE)
+                ], alignment=ft.MainAxisAlignment.CENTER, horizontal_alignment=ft.CrossAxisAlignment.CENTER)
+            ),
+
+            create_star_rating(food_rating, "Food Quality"),
+            create_star_rating(service_rating, "Service Quality"),
+
+            ft.ElevatedButton(
+                "Submit Feedback",
+                icon=ft.icons.SEND,
+                on_click=submit_feedback,
+                bgcolor=ft.colors.AMBER,
+                color=ft.colors.WHITE,
+                width=200,
+                height=45
+            )
+        ],
+            spacing=25,
+            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+            scroll=ft.ScrollMode.AUTO),
+        padding=30,
+        expand=True
+    )
+
+
+def checkout_flow(page: ft.Page, navigate_to, email: str, restaurant_id: int):
+    """Handle the complete checkout process"""
+    if email in user_carts:
+        del user_carts[email]
+
+    supplier = get_food_supplier_location(restaurant_id)
+    if supplier:
+        maps_url = f"https://www.google.com/maps/search/?api=1&query={urllib.parse.quote(supplier['name'] + ' ' + supplier['location'])}"
+        webbrowser.open(maps_url)
+
+    # Immediately show feedback page
+    feedback_page = create_feedback_page(page, navigate_to, email, restaurant_id)
+    page.clean()
+    page.add(feedback_page)
+    page.update()
+
+
 def cart_page(page: ft.Page, navigate_to, email, food_supplier_id):
+    """Main cart page with checkout functionality"""
     cart = user_carts.get(email, {})
 
     def get_cart_items():
@@ -74,57 +198,6 @@ def cart_page(page: ft.Page, navigate_to, email, food_supplier_id):
                     "total": details["price"] * quantity
                 })
         return items
-
-    def open_maps(e):
-        """Open Google Maps with food supplier location"""
-        print("Checkout button clicked!")  # Debug print
-        try:
-            supplier = get_food_supplier_location(food_supplier_id)
-            print(f"Supplier data: {supplier}")  # Debug print
-
-            if not supplier:
-                print("No supplier found")  # Debug print
-                page.snack_bar = ft.SnackBar(
-                    ft.Text("Supplier location not found!"),
-                    open=True
-                )
-                page.update()
-                return
-
-            # Properly encode the query for URL
-            query = urllib.parse.quote_plus(f"{supplier['name']}, {supplier['location']}, Jaipur")
-            maps_url = f"https://www.google.com/maps/search/?api=1&query={query}"
-            print(f"Opening URL: {maps_url}")  # Debug print
-
-            # Try multiple methods to open the URL
-            try:
-                # Method 1: Using webbrowser
-                webbrowser.open(maps_url)
-
-                # Method 2: Using page.launch_url (for web)
-                # page.launch_url(maps_url)
-
-                # Show confirmation to user
-                page.snack_bar = ft.SnackBar(
-                    ft.Text(f"Opening directions to {supplier['name']}"),
-                    open=True
-                )
-            except Exception as e:
-                print(f"Error opening URL: {e}")  # Debug print
-                page.snack_bar = ft.SnackBar(
-                    ft.Text(f"Failed to open maps: {e}"),
-                    open=True
-                )
-
-            page.update()
-
-        except Exception as e:
-            print(f"Error in open_maps: {e}")  # Debug print
-            page.snack_bar = ft.SnackBar(
-                ft.Text(f"An error occurred: {e}"),
-                open=True
-            )
-            page.update()
 
     cart_items = get_cart_items()
     subtotal = sum(item["total"] for item in cart_items)
@@ -174,10 +247,10 @@ def cart_page(page: ft.Page, navigate_to, email, food_supplier_id):
 
     checkout_btn = ft.ElevatedButton(
         "Checkout",
-        on_click=open_maps,  # Just pass the function reference
-        color=ft.colors.WHITE,
-        bgcolor=ft.colors.GREEN,
-        expand=True
+        on_click=lambda _: checkout_flow(page, navigate_to, email, food_supplier_id),
+        icon=ft.icons.MAP,
+        width=180,
+        style=ft.ButtonStyle(bgcolor=ft.colors.GREEN, color=ft.colors.WHITE)
     )
 
     # Add this temporary debug button
@@ -227,4 +300,3 @@ def cart_page(page: ft.Page, navigate_to, email, food_supplier_id):
             # debug_btn
         ], spacing=20)
     ], spacing=20)
-

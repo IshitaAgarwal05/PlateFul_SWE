@@ -178,7 +178,7 @@ def user_menu_page(page: ft.Page, navigate_to, email, restaurant_id: int, user_t
             ft.Text("Cart: 0 items", size=14, weight="bold"),
             ft.ElevatedButton(
                 "View Cart",
-                on_click=lambda _: navigate_to(page, "user_cart", email),
+                on_click=lambda _: navigate_to(page, "user_cart", email, restaurant_id),
                 icon=ft.icons.SHOPPING_CART
             )
         ],

@@ -232,6 +232,11 @@ def registration_page(page, navigate_to):
         on_click=handle_register
     )
 
+    login_button = ft.ElevatedButton(
+        text="Go back to Login",
+        on_click=lambda _: navigate_to(page, "login")
+    )
+
     # Registration form content
     form_content = ft.Column([
         ft.Text("Register", size=24, weight=ft.FontWeight.BOLD, color="black"),
@@ -245,7 +250,13 @@ def registration_page(page, navigate_to):
         bpl_card_field,
         password_field,
         verification_status,
-        ft.Row([register_button], alignment=ft.MainAxisAlignment.CENTER)
+        ft.Row(
+            [
+                register_button,
+                login_button
+            ],
+            alignment=ft.MainAxisAlignment.SPACE_EVENLY
+        )
     ], spacing=15)
 
     return ft.Container(

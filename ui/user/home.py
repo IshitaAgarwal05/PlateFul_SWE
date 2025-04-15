@@ -1,7 +1,12 @@
 import flet as ft
 import sqlite3
+import os
 from typing import Optional, List, Dict
 from db.models import get_user_type
+
+# Constants
+ASSETS_FS_IMAGE_PATH = "assets/images/fs/"
+DEFAULT_FS_ICON = ft.icons.RESTAURANT  # Default icon if no image found
 
 
 # Database Helper Functions
@@ -21,7 +26,7 @@ def get_user_location(email: str) -> Optional[str]:
 
 
 def get_food_suppliers(location: str) -> List[Dict]:
-    """Get active food suppliers in a specific location"""
+    """Get active food suppliers in a specific location with restaurant_id"""
     conn = sqlite3.connect('plateful.db')
     cursor = conn.cursor()
     try:
@@ -39,6 +44,14 @@ def get_food_suppliers(location: str) -> List[Dict]:
         conn.close()
 
 
+def get_food_supplier_image(restaurant_id: int) -> str:
+    """Check if image exists for food supplier, return path or None"""
+    image_path = f"{ASSETS_FS_IMAGE_PATH}fs_{restaurant_id}.png"
+    if os.path.exists(image_path):
+        return image_path
+    return None
+
+
 # Main Page Function
 def home_page(page: ft.Page, navigate_to, email):
     # Get user's location
@@ -52,7 +65,7 @@ def home_page(page: ft.Page, navigate_to, email):
     # Create main container
     scrollable_content = ft.Column(spacing=15, expand=True, scroll=ft.ScrollMode.AUTO)
 
-    # Modified navigation handler that accepts restaurant_id
+    # Navigation handlers (unchanged from your original code)
     def navigate_to_menu(e, restaurant_id=None):
         navigate_to(page, "user_menu_fs", email, restaurant_id)
 
@@ -75,7 +88,7 @@ def home_page(page: ft.Page, navigate_to, email):
         page.snack_bar.open = True
         page.update()
 
-    # Search Bar
+    # Search Bar (unchanged from your original code)
     search_bar = ft.TextField(
         hint_text=f"Search in {user_location}...",
         prefix_icon=ft.icons.SEARCH,
@@ -89,8 +102,8 @@ def home_page(page: ft.Page, navigate_to, email):
 
     def filter_suppliers(search_term: str):
         filtered = [s for s in food_suppliers
-                   if search_term.lower() in s['name'].lower() or
-                   (s['description'] and search_term.lower() in s['description'].lower())]
+                    if search_term.lower() in s['name'].lower() or
+                    (s['description'] and search_term.lower() in s['description'].lower())]
         update_restaurant_list(filtered)
 
     def safe_compare_rating(rating, threshold=4):
@@ -130,18 +143,46 @@ def home_page(page: ft.Page, navigate_to, email):
         rating = get_safe_rating(supplier)
         rating_display = f"{rating:.1f}" if rating is not None else "N/A"
 
+        # Check for custom image, otherwise use icon
+        restaurant_id = supplier['restaurant_id']
+        image_path = get_food_supplier_image(restaurant_id)
+
+        # Standard dimensions for all images/icons
+        IMAGE_WIDTH = 120
+        IMAGE_HEIGHT = 90
+
+        if image_path:
+            image_content = ft.Container(
+                width=IMAGE_WIDTH,
+                height=IMAGE_HEIGHT,
+                border_radius=10,
+                clip_behavior=ft.ClipBehavior.ANTI_ALIAS,
+                content=ft.Image(
+                    src=image_path,
+                    fit=ft.ImageFit.COVER,
+                    width=IMAGE_WIDTH,
+                    height=IMAGE_HEIGHT,
+                )
+            )
+        else:
+            image_content = ft.Container(
+                width=IMAGE_WIDTH,
+                height=IMAGE_HEIGHT,
+                border_radius=10,
+                bgcolor=ft.colors.GREY_200,
+                content=ft.Icon(
+                    DEFAULT_FS_ICON,
+                    size=40,
+                    color=ft.colors.GREY_600
+                ),
+                alignment=ft.alignment.center
+            )
+
         card = ft.Card(
             content=ft.Container(
                 content=ft.Column([
                     ft.Row([
-                        ft.Image(
-                            src=supplier.get('image_url', 'https://source.unsplash.com/300x200/?restaurant'),
-                            width=120,
-                            height=90,
-                            border_radius=10,
-                            fit=ft.ImageFit.COVER,
-                            expand=True
-                        ),
+                        image_content,
                         ft.Column([
                             ft.Text(supplier['name'], size=16, weight="bold"),
                             ft.Row([
@@ -172,7 +213,7 @@ def home_page(page: ft.Page, navigate_to, email):
             content=card
         )
 
-    # Filter Buttons with safe rating comparison
+    # Rest of your existing code (filter_row, restaurant_list, bottom_nav, etc.)
     filter_row = ft.Row(
         controls=[
             ft.ElevatedButton("All", on_click=lambda e: update_restaurant_list(food_suppliers)),
@@ -186,11 +227,9 @@ def home_page(page: ft.Page, navigate_to, email):
         scroll=ft.ScrollMode.AUTO
     )
 
-    # Restaurant List
     restaurant_list = ft.Column(spacing=5)
     update_restaurant_list(food_suppliers)
 
-    # Bottom Navigation Bar
     bottom_nav = ft.Container(
         content=ft.BottomAppBar(
             bgcolor="white",
@@ -213,7 +252,6 @@ def home_page(page: ft.Page, navigate_to, email):
         padding=0
     )
 
-    # Header with location
     location_header = ft.Row(
         controls=[
             ft.Icon(ft.icons.LOCATION_ON, color=ft.colors.BLUE, size=20),
@@ -224,7 +262,6 @@ def home_page(page: ft.Page, navigate_to, email):
         spacing=5
     )
 
-    # Assemble all components
     scrollable_content.controls.extend([
         ft.Container(height=10),
         location_header,
@@ -235,10 +272,9 @@ def home_page(page: ft.Page, navigate_to, email):
         ft.Container(height=15),
         ft.Text("Available Restaurants", size=18, weight="bold"),
         restaurant_list,
-        ft.Container(height=80)  # Space for bottom nav
+        ft.Container(height=80)
     ])
 
-    # Final layout
     layout = ft.Stack(
         controls=[
             scrollable_content,

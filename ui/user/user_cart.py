@@ -1,9 +1,14 @@
 import flet as ft
 import sqlite3
-import webbrowser
-from typing import Dict
+from typing import Dict, Optional
 from ui.user.user_menu_fs import user_carts
+import webbrowser
+import urllib.parse
+import time
 
+
+# Shared carty storage
+user_carts  ={}
 
 def get_item_details(item_id: int) -> Dict:
     """Get details for a specific menu item"""
@@ -25,21 +30,29 @@ def get_item_details(item_id: int) -> Dict:
         conn.close()
 
 
-def get_food_supplier_location(restaurant_id: int) -> Dict:
+def get_food_supplier_location(food_supplier_id: int) -> Dict:
     """Get food supplier name and location for maps"""
     conn = sqlite3.connect("plateful.db")
     cursor = conn.cursor()
     try:
+        print(f"Searching for supplier ID: {food_supplier_id}")  # Debug
+
         cursor.execute(
             "SELECT name, location FROM FOOD_SUPPLIER WHERE restaurant_id = ?",
-            (restaurant_id,)
+            (food_supplier_id,)
         )
         result = cursor.fetchone()
+
+        print(f"Database result: {result}")  # Debug
+
         if result:
             return {
                 "name": result[0],
                 "location": result[1]
             }
+        return None
+    except Exception as e:
+        print(f"Database error: {e}")  # Debug
         return None
     finally:
         conn.close()
@@ -64,28 +77,54 @@ def cart_page(page: ft.Page, navigate_to, email, food_supplier_id):
 
     def open_maps(e):
         """Open Google Maps with food supplier location"""
-        supplier = get_food_supplier_location(food_supplier_id)
-        if supplier:
-            # Create a maps URL with the supplier's name and location
-            query = f"{supplier['name']}, {supplier['location']}, Jaipur"
-            maps_url = f"https://www.google.com/maps/search/?api=1&query={query}"
-            # Open the URL in default browser
-            webbrowser.open(maps_url)
+        print("Checkout button clicked!")  # Debug print
+        try:
+            supplier = get_food_supplier_location(food_supplier_id)
+            print(f"Supplier data: {supplier}")  # Debug print
 
-            # Alternative: Show confirmation dialog
-            page.dialog = ft.AlertDialog(
-                title=ft.Text("Opening Maps"),
-                content=ft.Text(f"Opening directions to {supplier['name']}"),
-                on_dismiss=lambda e: print("Dialog dismissed")
-            )
-            page.dialog.open = True
-        else:
+            if not supplier:
+                print("No supplier found")  # Debug print
+                page.snack_bar = ft.SnackBar(
+                    ft.Text("Supplier location not found!"),
+                    open=True
+                )
+                page.update()
+                return
+
+            # Properly encode the query for URL
+            query = urllib.parse.quote_plus(f"{supplier['name']}, {supplier['location']}, Jaipur")
+            maps_url = f"https://www.google.com/maps/search/?api=1&query={query}"
+            print(f"Opening URL: {maps_url}")  # Debug print
+
+            # Try multiple methods to open the URL
+            try:
+                # Method 1: Using webbrowser
+                webbrowser.open(maps_url)
+
+                # Method 2: Using page.launch_url (for web)
+                # page.launch_url(maps_url)
+
+                # Show confirmation to user
+                page.snack_bar = ft.SnackBar(
+                    ft.Text(f"Opening directions to {supplier['name']}"),
+                    open=True
+                )
+            except Exception as e:
+                print(f"Error opening URL: {e}")  # Debug print
+                page.snack_bar = ft.SnackBar(
+                    ft.Text(f"Failed to open maps: {e}"),
+                    open=True
+                )
+
+            page.update()
+
+        except Exception as e:
+            print(f"Error in open_maps: {e}")  # Debug print
             page.snack_bar = ft.SnackBar(
-                content=ft.Text("Could not find supplier location"),
-                action="OK"
+                ft.Text(f"An error occurred: {e}"),
+                open=True
             )
-            page.snack_bar.open = True
-        page.update()
+            page.update()
 
     cart_items = get_cart_items()
     subtotal = sum(item["total"] for item in cart_items)
@@ -133,6 +172,23 @@ def cart_page(page: ft.Page, navigate_to, email, food_supplier_id):
             ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN)
         )
 
+    checkout_btn = ft.ElevatedButton(
+        "Checkout",
+        on_click=open_maps,  # Just pass the function reference
+        color=ft.colors.WHITE,
+        bgcolor=ft.colors.GREEN,
+        expand=True
+    )
+
+    # Add this temporary debug button
+    # debug_btn = ft.ElevatedButton(
+    #     "Test Maps Open",
+    #     on_click=lambda e: page.launch_url("https://google.com"),
+    #     color=ft.colors.WHITE,
+    #     bgcolor=ft.colors.BLUE,
+    #     expand=True
+    # )
+
     return ft.Column([
         ft.Text("Your Cart", size=24, weight="bold"),
         ft.Column(
@@ -167,12 +223,8 @@ def cart_page(page: ft.Page, navigate_to, email, food_supplier_id):
                 on_click=lambda _: navigate_to(page, "user_home", email),
                 expand=True
             ),
-            ft.ElevatedButton(
-                "Checkout",
-                on_click=lambda e: open_maps,
-                color=ft.colors.WHITE,
-                bgcolor=ft.colors.GREEN,
-                expand=True
-            )
+            checkout_btn,
+            # debug_btn
         ], spacing=20)
     ], spacing=20)
+

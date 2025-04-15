@@ -1,7 +1,8 @@
 import flet as ft
 import sqlite3
+import webbrowser
 from typing import Dict
-from ui.user.user_menu_fs import user_carts  # Import the shared cart storage
+from ui.user.user_menu_fs import user_carts
 
 
 def get_item_details(item_id: int) -> Dict:
@@ -24,7 +25,27 @@ def get_item_details(item_id: int) -> Dict:
         conn.close()
 
 
-def cart_page(page: ft.Page, navigate_to, email, id):
+def get_food_supplier_location(restaurant_id: int) -> Dict:
+    """Get food supplier name and location for maps"""
+    conn = sqlite3.connect("plateful.db")
+    cursor = conn.cursor()
+    try:
+        cursor.execute(
+            "SELECT name, location FROM FOOD_SUPPLIER WHERE restaurant_id = ?",
+            (restaurant_id,)
+        )
+        result = cursor.fetchone()
+        if result:
+            return {
+                "name": result[0],
+                "location": result[1]
+            }
+        return None
+    finally:
+        conn.close()
+
+
+def cart_page(page: ft.Page, navigate_to, email, food_supplier_id):
     cart = user_carts.get(email, {})
 
     def get_cart_items():
@@ -41,8 +62,36 @@ def cart_page(page: ft.Page, navigate_to, email, id):
                 })
         return items
 
+    def open_maps(e):
+        """Open Google Maps with food supplier location"""
+        supplier = get_food_supplier_location(food_supplier_id)
+        if supplier:
+            # Create a maps URL with the supplier's name and location
+            query = f"{supplier['name']}, {supplier['location']}, Jaipur"
+            maps_url = f"https://www.google.com/maps/search/?api=1&query={query}"
+            # Open the URL in default browser
+            webbrowser.open(maps_url)
+
+            # Alternative: Show confirmation dialog
+            page.dialog = ft.AlertDialog(
+                title=ft.Text("Opening Maps"),
+                content=ft.Text(f"Opening directions to {supplier['name']}"),
+                on_dismiss=lambda e: print("Dialog dismissed")
+            )
+            page.dialog.open = True
+        else:
+            page.snack_bar = ft.SnackBar(
+                content=ft.Text("Could not find supplier location"),
+                action="OK"
+            )
+            page.snack_bar.open = True
+        page.update()
+
     cart_items = get_cart_items()
-    total_amount = sum(item["total"] for item in cart_items)
+    subtotal = sum(item["total"] for item in cart_items)
+    platform_fee = 5.00
+    gst = subtotal * 0.18
+    total_amount = subtotal + platform_fee + gst
 
     def update_quantity(item_id, new_quantity):
         if new_quantity <= 0:
@@ -50,7 +99,7 @@ def cart_page(page: ft.Page, navigate_to, email, id):
         else:
             cart[item_id] = new_quantity
         # Refresh the cart page
-        navigate_to(page, "user_cart", email)
+        navigate_to(page, "user_cart", email, food_supplier_id)
 
     if not cart_items:
         return ft.Column([
@@ -93,6 +142,21 @@ def cart_page(page: ft.Page, navigate_to, email, id):
             expand=True
         ),
         ft.Divider(),
+        # Charges breakdown
+        ft.Row([
+            ft.Text("Subtotal:", size=14),
+            ft.Text(f"₹{subtotal:.2f}", size=14)
+        ], alignment=ft.MainAxisAlignment.END),
+        ft.Row([
+            ft.Text("Platform Fee:", size=14),
+            ft.Text(f"₹{platform_fee:.2f}", size=14)
+        ], alignment=ft.MainAxisAlignment.END),
+        ft.Row([
+            ft.Text("GST (18%):", size=14),
+            ft.Text(f"₹{gst:.2f}", size=14)
+        ], alignment=ft.MainAxisAlignment.END),
+        ft.Divider(),
+        # Total
         ft.Row([
             ft.Text("Total:", size=16, weight="bold"),
             ft.Text(f"₹{total_amount:.2f}", size=16, weight="bold")
@@ -105,7 +169,7 @@ def cart_page(page: ft.Page, navigate_to, email, id):
             ),
             ft.ElevatedButton(
                 "Checkout",
-                on_click=navigate_to(page, "payment_gateway", email, id),
+                on_click=lambda e: open_maps,
                 color=ft.colors.WHITE,
                 bgcolor=ft.colors.GREEN,
                 expand=True

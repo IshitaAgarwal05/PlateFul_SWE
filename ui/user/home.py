@@ -52,7 +52,7 @@ def get_food_supplier_image(restaurant_id: int) -> str:
     return None
 
 
-def wrap_with_nav(content, page, email, navigate_to, navigate_to_profile):
+def wrap_with_nav(content, page, email, navigate_to, navigate_to_profile=None):
     bottom_nav_bar = ft.Container(
         content=ft.BottomAppBar(
             bgcolor="white",
@@ -69,7 +69,7 @@ def wrap_with_nav(content, page, email, navigate_to, navigate_to_profile):
                     ),
                     ft.IconButton(
                         icon=ft.icons.PERSON,
-                        on_click=lambda e: navigate_to_profile(email)
+                        on_click=lambda e: navigate_to_profile(page, navigate_to, email)
                     )
                 ]
             ),
@@ -90,6 +90,28 @@ def wrap_with_nav(content, page, email, navigate_to, navigate_to_profile):
     )
 
 
+def navigate_to_profile(page, navigate_to, email):
+    print("clickkk")
+    try:
+        user_type = get_user_type(email)
+        print(user_type)
+        if user_type == "NGO Employee":
+            navigate_to(page, "ngo_desc", email)
+        elif user_type in ["STU", "BPLU"]:
+            navigate_to(page, "user_profile", email)
+        elif user_type == "FS Employee":
+            navigate_to(page, "fs_profile", email)
+        else:
+            page.snack_bar = ft.SnackBar(ft.Text(f"No profile page available for {user_type} users"), bgcolor=ft.colors.RED)
+            page.snack_bar.open = True
+            page.update()
+    except Exception as e:
+        page.snack_bar = ft.SnackBar(ft.Text(f"Error navigating to profile: {str(e)}"), bgcolor=ft.colors.RED)
+        page.snack_bar.open = True
+        page.update()
+
+
+
 # Main Page Function
 def home_page(page: ft.Page, navigate_to, email):
     # Get user's location
@@ -106,25 +128,6 @@ def home_page(page: ft.Page, navigate_to, email):
     # Navigation handlers (unchanged from your original code)
     def navigate_to_menu(e, restaurant_id=None):
         navigate_to(page, "user_menu_fs", email, restaurant_id)
-
-    def navigate_to_profile(email):
-        try:
-            user_type = get_user_type(email)
-            if user_type == "NGO Employee":
-                navigate_to(page, "ngo_desc", email)
-            elif user_type in ["student_verification", "bpl_verification"]:
-                navigate_to(page, "user_profile", email)
-            elif user_type == "FS Employee":
-                navigate_to(page, "fs_profile", email)
-            else:
-                show_snackbar(f"No profile page available for {user_type} users")
-        except Exception as e:
-            show_snackbar(f"Error navigating to profile: {str(e)}")
-
-    def show_snackbar(message):
-        page.snack_bar = ft.SnackBar(ft.Text(message), bgcolor=ft.colors.RED)
-        page.snack_bar.open = True
-        page.update()
 
     # Search Bar (unchanged from your original code)
     search_bar = ft.TextField(

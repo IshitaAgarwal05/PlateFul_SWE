@@ -228,7 +228,7 @@ def user_menu_page(page: ft.Page, navigate_to, email, restaurant_id: int, user_t
                 ft.Text(supplier_menu['name'], size=24, weight="bold"),
                 ft.Row([
                     ft.Icon(ft.icons.STAR, color="yellow", size=16),
-                    ft.Text(str(supplier_menu['rating']), size=14),
+                    ft.Text(f"{supplier_menu['rating']:.1f}"  if supplier_menu['rating'] is not None else "N/A", size=14),
                     ft.Icon(ft.icons.LOCATION_ON, size=16),
                     ft.Text(supplier_menu['location'], size=14),
                 ], spacing=10),

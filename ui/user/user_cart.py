@@ -246,12 +246,27 @@ def cart_page(page: ft.Page, navigate_to, email, food_supplier_id):
         )
 
     checkout_btn = ft.ElevatedButton(
-        "Checkout",
-        on_click=lambda _: checkout_flow(page, navigate_to, email, food_supplier_id),
-        icon=ft.icons.MAP,
-        width=180,
-        style=ft.ButtonStyle(bgcolor=ft.colors.GREEN, color=ft.colors.WHITE)
+        "Proceed to Payment",
+        on_click=lambda _: navigate_to(
+            page,
+            "payment_gateway",
+            email,
+            {"amount": total_amount, "cart": cart, "restaurant_id": food_supplier_id}
+        ),
+        icon=ft.icons.PAYMENT,
+        style=ft.ButtonStyle(
+            bgcolor=ft.colors.GREEN,
+            color=ft.colors.WHITE
+        )
     )
+
+    # checkout_btn = ft.ElevatedButton(
+    #     "Checkout",
+    #     on_click=lambda _: checkout_flow(page, navigate_to, email, food_supplier_id),
+    #     icon=ft.icons.MAP,
+    #     width=180,
+    #     style=ft.ButtonStyle(bgcolor=ft.colors.GREEN, color=ft.colors.WHITE)
+    # )
 
     # Add this temporary debug button
     # debug_btn = ft.ElevatedButton(

@@ -90,11 +90,23 @@ def main(page: ft.Page):
             elif view == "user_cart":
                 from ui.user.user_cart import cart_page
                 page.add(cart_page(page, navigate_to, email, id))
+            elif view == "prev_orders":
+                from ui.user.prev_orders import previous_orders_page
+                page.add(previous_orders_page(page, navigate_to, email, navigate_to_profile=id))
+
 
 
             elif view == "payment_gateway":
                 from ui.payment import payment_page
-                page.add(payment_page(page, navigate_to, email, amount=None))  # Pass email and amount
+                params = id if isinstance(id, dict) else {}
+                page.add(payment_page(
+                    page,
+                    navigate_to,
+                    email,
+                    amount=params.get("amount"),
+                    cart=params.get("cart"),
+                    restaurant_id=params.get("restaurant_id")
+                ))
 
 
             else:
@@ -148,4 +160,4 @@ def main(page: ft.Page):
     navigate_to(page, "welcome")
 
 # print("AC")
-ft.app(target=main, view=ft.AppView.FLET_APP_WEB)
+ft.app(target=main, view=ft.AppView.FLET_APP_WEB, assets_dir="assets")

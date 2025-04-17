@@ -52,6 +52,44 @@ def get_food_supplier_image(restaurant_id: int) -> str:
     return None
 
 
+def wrap_with_nav(content, page, email, navigate_to, navigate_to_profile):
+    bottom_nav_bar = ft.Container(
+        content=ft.BottomAppBar(
+            bgcolor="white",
+            content=ft.Row(
+                alignment=ft.MainAxisAlignment.SPACE_AROUND,
+                controls=[
+                    ft.IconButton(
+                        icon=ft.icons.HOME,
+                        on_click=lambda e: navigate_to(page, "user_home", email)
+                    ),
+                    ft.IconButton(
+                        icon=ft.icons.FAVORITE_BORDER,
+                        on_click=lambda e: navigate_to(page, "prev_orders", email, navigate_to_profile)
+                    ),
+                    ft.IconButton(
+                        icon=ft.icons.PERSON,
+                        on_click=lambda e: navigate_to_profile(email)
+                    )
+                ]
+            ),
+            elevation=8
+        ),
+        bottom=0,
+        left=0,
+        right=0,
+        padding=0
+    )
+
+    return ft.Stack(
+        controls=[
+            content,
+            bottom_nav_bar
+        ],
+        expand=True
+    )
+
+
 # Main Page Function
 def home_page(page: ft.Page, navigate_to, email):
     # Get user's location
@@ -69,7 +107,7 @@ def home_page(page: ft.Page, navigate_to, email):
     def navigate_to_menu(e, restaurant_id=None):
         navigate_to(page, "user_menu_fs", email, restaurant_id)
 
-    def navigate_to_profile(e):
+    def navigate_to_profile(email):
         try:
             user_type = get_user_type(email)
             if user_type == "NGO Employee":
@@ -230,33 +268,31 @@ def home_page(page: ft.Page, navigate_to, email):
     restaurant_list = ft.Column(spacing=5)
     update_restaurant_list(food_suppliers)
 
-    bottom_nav = ft.Container(
-        content=ft.BottomAppBar(
-            bgcolor="white",
-            content=ft.Row(
-                alignment=ft.MainAxisAlignment.SPACE_AROUND,
-                controls=[
-                    ft.IconButton(icon=ft.icons.HOME, icon_color=ft.colors.BLUE),
-                    ft.IconButton(icon=ft.icons.FAVORITE_BORDER),
-                    ft.IconButton(
-                        icon=ft.icons.PERSON,
-                        on_click=navigate_to_profile
-                    )
-                ]
-            ),
-            elevation=8
-        ),
-        bottom=0,
-        left=0,
-        right=0,
-        padding=0
-    )
+    # bottom_nav = ft.Container(
+    #     content=ft.BottomAppBar(
+    #         bgcolor="white",
+    #         content=ft.Row(
+    #             alignment=ft.MainAxisAlignment.SPACE_AROUND,
+    #             controls=[
+    #                 ft.IconButton(icon=ft.icons.HOME, icon_color=ft.colors.BLUE),
+    #                 ft.IconButton(icon=ft.icons.FAVORITE_BORDER, on_click=lambda e: navigate_to(page, "prev_orders", email)),
+    #                 ft.IconButton(icon=ft.icons.PERSON,on_click=navigate_to_profile  # This is okay since it's already a defined function
+    #                 )
+    #             ]
+    #         ),
+    #         elevation=8
+    #     ),
+    #     bottom=0,
+    #     left=0,
+    #     right=0,
+    #     padding=0
+    # )
 
     location_header = ft.Row(
         controls=[
             ft.Icon(ft.icons.LOCATION_ON, color=ft.colors.BLUE, size=20),
             ft.Text(user_location, weight="bold"),
-            ft.Icon(ft.icons.ARROW_DROP_DOWN)
+            # ft.Icon(ft.icons.ARROW_DROP_DOWN)
         ],
         alignment=ft.MainAxisAlignment.CENTER,
         spacing=5
@@ -275,12 +311,12 @@ def home_page(page: ft.Page, navigate_to, email):
         ft.Container(height=80)
     ])
 
-    layout = ft.Stack(
-        controls=[
-            scrollable_content,
-            bottom_nav
-        ],
-        expand=True
-    )
+    main_content = scrollable_content
 
-    return layout
+    return wrap_with_nav(
+        content=main_content,
+        page=page,
+        email=email,
+        navigate_to=navigate_to,
+        navigate_to_profile=navigate_to_profile
+    )
